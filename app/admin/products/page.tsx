@@ -59,6 +59,11 @@ type PrintJob = {
   templateId: string;
 };
 
+// وضع استيراد الصور الجماعي:
+//   replace = استبدال صور الأصناف التي تملك صورة بالفعل
+//   add     = رفع صور للأصناف التي لا تملك صورة (يحمي الموجودة)
+type ImageImportMode = "replace" | "add";
+
 const emptyForm: ProductForm = {
   product_name_ar: "",
   product_name_en: "",
@@ -101,6 +106,10 @@ export default function AdminProductsPage() {
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
 
   const [isImportingImages, setIsImportingImages] = useState(false);
+  // أي زر يعمل حالياً (عشان نُظهر مؤشّر التقدّم على الزر الصحيح فقط)
+  const [importingImagesMode, setImportingImagesMode] = useState<ImageImportMode | null>(null);
+  // وضع آخر استيراد اكتمل (لعنوان صندوق النتيجة)
+  const [lastImageImportMode, setLastImageImportMode] = useState<ImageImportMode | null>(null);
   const [imageImportSummary, setImageImportSummary] = useState<ImportSummary | null>(null);
   const [imageImportProgress, setImageImportProgress] = useState({ done: 0, total: 0 });
 
@@ -666,11 +675,38 @@ console.log("3", ids);
   router.push(`/admin/labels/print?${params.toString()}`);
 }
 
-  async function handleBulkImageImport(event: ChangeEvent<HTMLInputElement>) {
+  /* استيراد الصور بالجملة — بزرّين منفصلين حسب الوضع (mode):
+       "replace" = يستبدل صورة الصنف الذي يملك صورة بالفعل فقط.
+                   الصنف بدون صورة → يُتخطّى مع رسالة توجّه للزر الثاني.
+       "add"     = يرفع صورة للصنف الذي لا يملك صورة فقط.
+                   الصنف الذي يملك صورة → محمي ولا يُستبدل أبداً.
+     الفحص يتم محلياً من قائمة المنتجات المحمّلة (product_image_url)،
+     فلا نرفع أي صورة للتخزين إلا بعد اجتياز فحص الوضع. */
+  async function handleBulkImageImport(
+    event: ChangeEvent<HTMLInputElement>,
+    mode: ImageImportMode
+  ) {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
+    // نحتاج قائمة المنتجات محمّلة عشان نعرف مين عنده صورة ومين لا
+    if (products.length === 0) {
+      setMessage("يرجى الانتظار حتى تُحمَّل المنتجات ثم إعادة المحاولة");
+      setMessageType("error");
+      event.target.value = "";
+      return;
+    }
+
+    // جدول بحث سريع: رقم الصنف => المنتج (المطابقة زي اسم الملف تماماً)
+    const productByNumber = new Map<string, Product>();
+    for (const p of products) {
+      if (p.product_number) {
+        productByNumber.set(p.product_number.trim(), p);
+      }
+    }
+
     setIsImportingImages(true);
+    setImportingImagesMode(mode);
     setImageImportSummary(null);
     setImageImportProgress({ done: 0, total: files.length });
     setMessage("");
@@ -688,6 +724,41 @@ console.log("3", ids);
           return;
         }
 
+        const matchedProduct = productByNumber.get(productNumber);
+
+        // الصنف غير موجود إطلاقاً بالنظام
+        if (!matchedProduct) {
+          summary.failed.push({
+            row: index + 1,
+            product_number: productNumber,
+            message: "الصنف غير موجود في النظام",
+          });
+          return;
+        }
+
+        const hasImage = Boolean(matchedProduct.product_image_url);
+
+        // زر الاستبدال: يعمل فقط لو الصنف يملك صورة سابقة
+        if (mode === "replace" && !hasImage) {
+          summary.failed.push({
+            row: index + 1,
+            product_number: productNumber,
+            message: "هذا الصنف لا يملك صورة سابقة — استخدم زر «رفع صور (بدون صورة)»",
+          });
+          return;
+        }
+
+        // زر رفع الجديد: يعمل فقط لو الصنف لا يملك صورة (يحمي الموجودة)
+        if (mode === "add" && hasImage) {
+          summary.failed.push({
+            row: index + 1,
+            product_number: productNumber,
+            message: "هذا الصنف يملك صورة بالفعل ومحمية — استخدم زر «استبدال صور (لها صورة)»",
+          });
+          return;
+        }
+
+        // اجتاز الفحص — نرفع الصورة للتخزين ونربطها بالصنف
         const { blob: compressedBlob, ext: fileExtension } = await compressImageForUpload(file);
         const safeProductNumber = productNumber.replace(/[^a-zA-Z0-9_-]/g, "-");
         const fileName = `${safeProductNumber}-${Date.now()}-${index}.${fileExtension}`;
@@ -741,8 +812,10 @@ console.log("3", ids);
       await Promise.all(batch.map((file, offset) => processOne(file, start + offset)));
     }
 
+    setLastImageImportMode(mode);
     setImageImportSummary(summary);
     setIsImportingImages(false);
+    setImportingImagesMode(null);
     event.target.value = "";
     await loadProducts();
   }
@@ -1018,7 +1091,7 @@ console.log("3", ids);
               <p className="mt-2 text-gray-500">عدد المنتجات: {filteredProducts.length} من {products.length}</p>
             </div>
 
-            <div className="flex flex-col gap-3 md:flex-row">
+            <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -1046,7 +1119,9 @@ console.log("3", ids);
                 />
               </label>
 
+              {/* زر (1) الاستبدال: يعمل فقط للأصناف التي تملك صورة سابقة */}
               <label
+                title="يستبدل صور الأصناف التي تملك صورة بالفعل. الأصناف بدون صورة تُتخطّى ولا تتغيّر."
                 style={{ backgroundColor: isImportingImages ? "#9ca3af" : "#7c3aed" }}
                 onMouseEnter={(e) => {
                   if (!isImportingImages) e.currentTarget.style.backgroundColor = "#6d28d9";
@@ -1056,14 +1131,39 @@ console.log("3", ids);
                 }}
                 className="cursor-pointer rounded-2xl px-6 py-3 font-bold text-white shadow-lg text-center"
               >
-                {isImportingImages
-                  ? `جاري الرفع... (${imageImportProgress.done}/${imageImportProgress.total})`
-                  : "استيراد الصور (بالجملة)"}
+                {isImportingImages && importingImagesMode === "replace"
+                  ? `جاري الاستبدال... (${imageImportProgress.done}/${imageImportProgress.total})`
+                  : "استبدال صور (لها صورة)"}
                 <input
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={handleBulkImageImport}
+                  onChange={(e) => handleBulkImageImport(e, "replace")}
+                  disabled={isImportingImages}
+                  className="hidden"
+                />
+              </label>
+
+              {/* زر (2) رفع الجديد: يعمل فقط للأصناف التي لا تملك صورة (يحمي الموجودة) */}
+              <label
+                title="يرفع صوراً للأصناف التي لا تملك صورة فقط. الأصناف التي لها صورة محمية ولن تُستبدل."
+                style={{ backgroundColor: isImportingImages ? "#9ca3af" : "#0d9488" }}
+                onMouseEnter={(e) => {
+                  if (!isImportingImages) e.currentTarget.style.backgroundColor = "#0f766e";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isImportingImages) e.currentTarget.style.backgroundColor = "#0d9488";
+                }}
+                className="cursor-pointer rounded-2xl px-6 py-3 font-bold text-white shadow-lg text-center"
+              >
+                {isImportingImages && importingImagesMode === "add"
+                  ? `جاري الرفع... (${imageImportProgress.done}/${imageImportProgress.total})`
+                  : "رفع صور (بدون صورة)"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleBulkImageImport(e, "add")}
                   disabled={isImportingImages}
                   className="hidden"
                 />
@@ -1090,7 +1190,7 @@ console.log("3", ids);
           {imageImportSummary && (
             <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50 p-5">
               <p className="font-bold text-purple-900">
-                نتيجة استيراد الصور: {imageImportSummary.success} من {imageImportSummary.total} تم ربطها بنجاح
+                {lastImageImportMode === "add" ? "نتيجة رفع الصور الجديدة" : "نتيجة استبدال الصور"}: {imageImportSummary.success} من {imageImportSummary.total} تم بنجاح
               </p>
 
               {imageImportSummary.failed.length > 0 && (
