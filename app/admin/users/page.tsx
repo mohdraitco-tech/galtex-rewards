@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
-type AdminRole = "admin" | "employee";
+type AdminRole = "super_admin" | "employee";
 
 type Permissions = {
   products?: boolean;
@@ -113,7 +113,7 @@ export default function AdminUsersPage() {
     setCurrentRole(role);
 
     // هذي الصفحة للمدير العام بس — أي حد ثاني يوصلها مباشرة يُرجَّع للوحة الإدارة
-    if (role !== "admin") {
+    if (role !== "super_admin") {
       router.replace("/admin");
       return;
     }
@@ -252,11 +252,11 @@ export default function AdminUsersPage() {
   }
 
   const sortedUsers = useMemo(
-    () => users.slice().sort((a, b) => (a.role === b.role ? 0 : a.role === "admin" ? -1 : 1)),
+    () => users.slice().sort((a, b) => (a.role === b.role ? 0 : a.role === "super_admin" ? -1 : 1)),
     [users]
   );
 
-  if (currentRole !== "admin") {
+  if (currentRole !== "super_admin") {
     return null; // يمنع أي وميض بالمحتوى قبل ما يصير التحويل بـ useEffect
   }
 
@@ -358,35 +358,15 @@ export default function AdminUsersPage() {
                   />
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">نوع الحساب</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm((p) => ({ ...p, role: e.target.value as AdminRole }))}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 bg-white outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="employee">موظف (صلاحيات محدودة)</option>
-                  <option value="admin">مدير عام (كل الصلاحيات)</option>
-                </select>
-              </div>
-
-              {isEditing && (
-                <div className="flex items-center">
-                  <label className="flex items-center gap-3 border border-gray-300 rounded-2xl px-4 py-3 w-full cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.is_active}
-                      onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
-                      className="w-5 h-5"
-                    />
-                    <span className="font-bold text-gray-700">الحساب فعّال</span>
-                  </label>
-                </div>
-              )}
             </div>
 
-            {form.role === "employee" && (
+            {/* الحسابات الجديدة كلها موظفين بصلاحيات محددة. حساب المدير العام
+                (super_admin) وحيد بالنظام ولا يُنشأ من هنا. */}
+            {form.role === "super_admin" ? (
+              <div className="bg-purple-50 border border-purple-100 text-purple-700 rounded-2xl p-4 text-sm font-semibold">
+                هذا حساب "مدير عام" ويملك كل الصلاحيات تلقائيًا.
+              </div>
+            ) : (
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-3">
                   الأقسام المسموح للموظف يوصلها
@@ -414,10 +394,16 @@ export default function AdminUsersPage() {
               </div>
             )}
 
-            {form.role === "admin" && (
-              <div className="bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl p-4 text-sm font-semibold">
-                حساب "مدير عام" يحصل على كل الصلاحيات تلقائيًا بدون تحديد.
-              </div>
+            {isEditing && (
+              <label className="flex items-center gap-3 border border-gray-300 rounded-2xl px-4 py-3 w-full cursor-pointer md:w-auto">
+                <input
+                  type="checkbox"
+                  checked={form.is_active}
+                  onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
+                  className="w-5 h-5"
+                />
+                <span className="font-bold text-gray-700">الحساب فعّال</span>
+              </label>
             )}
 
             <button
@@ -473,17 +459,17 @@ export default function AdminUsersPage() {
                         <td className="p-4">
                           <span
                             className={`px-3 py-1 rounded-full text-sm font-bold border ${
-                              user.role === "admin"
+                              user.role === "super_admin"
                                 ? "bg-purple-50 text-purple-700 border-purple-100"
                                 : "bg-blue-50 text-blue-700 border-blue-100"
                             }`}
                           >
-                            {user.role === "admin" ? "مدير عام" : "موظف"}
+                            {user.role === "super_admin" ? "مدير عام" : "موظف"}
                           </span>
                         </td>
 
                         <td className="p-4 text-gray-600 text-sm">
-                          {user.role === "admin" ? "الكل" : `${activePermissionsCount} من ${PERMISSION_SECTIONS.length}`}
+                          {user.role === "super_admin" ? "الكل" : `${activePermissionsCount} من ${PERMISSION_SECTIONS.length}`}
                         </td>
 
                         <td className="p-4">

@@ -671,7 +671,7 @@ export default function EditLabelTemplatePage() {
   // الصفحة حتى لو كتب الرابط مباشرة بالمتصفح
   useEffect(() => {
     const role = localStorage.getItem("galtex_admin_role");
-    let permitted = role === "admin";
+   let permitted = role === "admin" || role === "super_admin";
 
     if (!permitted) {
       try {

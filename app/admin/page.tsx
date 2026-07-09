@@ -11,10 +11,20 @@ type AdminCustomer = {
   current_points: number;
 };
 
+type Permissions = {
+  products?: boolean;
+  customers?: boolean;
+  qr_codes?: boolean;
+  label_templates?: boolean;
+  settings?: boolean;
+};
+
 export default function AdminPage() {
   const router = useRouter();
 
   const [adminName, setAdminName] = useState("");
+  const [role, setRole] = useState<string>("");
+  const [permissions, setPermissions] = useState<Permissions>({});
   const [pendingCustomers, setPendingCustomers] = useState<PendingCustomer[]>([]);
   const [allCustomers, setAllCustomers] = useState<AdminCustomer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,46 +74,93 @@ export default function AdminPage() {
     localStorage.removeItem("galtex_admin_username");
     localStorage.removeItem("galtex_admin_name");
     localStorage.removeItem("galtex_admin_role");
+    localStorage.removeItem("galtex_admin_permissions");
 
     router.replace("/admin/login");
   }
 
   useEffect(() => {
     setAdminName(localStorage.getItem("galtex_admin_name") || "");
+    setRole(localStorage.getItem("galtex_admin_role") || "");
+
+    try {
+      const raw = localStorage.getItem("galtex_admin_permissions");
+      setPermissions(raw ? JSON.parse(raw) : {});
+    } catch {
+      setPermissions({});
+    }
+
     loadData();
   }, [loadData]);
 
-  const navCards = [
-    {
-      title: "إدارة العملاء والنقاط",
-      description: "طلبات التسجيل، صرف النقاط، إيقاف وتفعيل الحسابات",
-      href: "/admin/customers",
-      badge: stats.pendingRequests > 0 ? `${stats.pendingRequests} طلب معلق` : undefined,
-      bg: "#1d4ed8",
-      bgHover: "#1e40af",
-    },
-    {
-      title: "المنتجات",
-      description: "إضافة وتعديل المنتجات، وتوليد أكواد QR",
-      href: "/admin/products",
-      bg: "#16a34a",
-      bgHover: "#15803d",
-    },
-    {
-      title: "أكواد QR",
-      description: "متابعة الأكواد المولدة وحالة استخدامها",
-      href: "/admin/qr-codes",
-      bg: "#dc2626",
-      bgHover: "#b91c1c",
-    },
-    {
-      title: "قوالب الليبل",
-      description: "تصميم وإدارة قوالب طباعة الليبلات",
-      href: "/admin/label-templates",
-      bg: "#ea580c",
-      bgHover: "#c2410c",
-    },
-  ];
+  const isFullAccess = role === "admin" || role === "super_admin";
+
+  function canAccess(key: keyof Permissions) {
+    return isFullAccess || Boolean(permissions[key]);
+  }
+
+  const navCards = useMemo(() => {
+    const cards = [
+      {
+        key: "customers" as const,
+        title: "إدارة العملاء والنقاط",
+        description: "طلبات التسجيل، صرف النقاط، إيقاف وتفعيل الحسابات",
+        href: "/admin/customers",
+        badge: stats.pendingRequests > 0 ? `${stats.pendingRequests} طلب معلق` : undefined,
+        bg: "#1d4ed8",
+        bgHover: "#1e40af",
+      },
+      {
+        key: "products" as const,
+        title: "المنتجات",
+        description: "إضافة وتعديل المنتجات، وتوليد أكواد QR",
+        href: "/admin/products",
+        bg: "#16a34a",
+        bgHover: "#15803d",
+      },
+      {
+        key: "qr_codes" as const,
+        title: "أكواد QR",
+        description: "متابعة الأكواد المولدة وحالة استخدامها",
+        href: "/admin/qr-codes",
+        bg: "#dc2626",
+        bgHover: "#b91c1c",
+      },
+      {
+        key: "label_templates" as const,
+        title: "قوالب الليبل",
+        description: "تصميم وإدارة قوالب طباعة الليبلات",
+        href: "/admin/label-templates",
+        bg: "#ea580c",
+        bgHover: "#c2410c",
+      },
+      {
+        key: "settings" as const,
+        title: "الإعدادات",
+        description: "نسب توزيع النقاط بين الميكانيكي والمبيعات",
+        href: "/admin/settings",
+        bg: "#7c3aed",
+        bgHover: "#6d28d9",
+      },
+    ];
+
+    const visible = cards.filter((card) => canAccess(card.key));
+
+    // بطاقة إدارة المستخدمين تظهر للمدير العام فقط، دايمًا، وبنهاية القائمة
+    if (isFullAccess) {
+      visible.push({
+        key: "users" as any,
+        title: "إدارة المستخدمين",
+        description: "إنشاء حسابات إدارية وتحديد صلاحيات كل موظف",
+        href: "/admin/users",
+        bg: "#0f172a",
+        bgHover: "#1e293b",
+      });
+    }
+
+    return visible;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats.pendingRequests, role, permissions]);
 
   return (
     <main
@@ -117,7 +174,9 @@ export default function AdminPage() {
               <h1 className="text-4xl font-bold">GALTEX Rewards</h1>
               <p className="text-blue-100 mt-3 text-lg">لوحة تحكم الإدارة</p>
               {adminName && (
-                <p className="text-blue-200 mt-2 text-sm">مرحباً، {adminName}</p>
+                <p className="text-blue-200 mt-2 text-sm">
+                  مرحباً، {adminName} {!isFullAccess && "— موظف"}
+                </p>
               )}
             </div>
 
@@ -159,31 +218,37 @@ export default function AdminPage() {
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">الأقسام</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {navCards.map((card) => (
-              <button
-                key={card.href}
-                type="button"
-                onClick={() => router.push(card.href)}
-                style={{ backgroundColor: card.bg }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = card.bgHover)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = card.bg)}
-                className="text-right rounded-[2rem] p-6 text-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-xl font-bold">{card.title}</h3>
+          {navCards.length === 0 ? (
+            <div className="bg-white rounded-3xl p-10 text-center text-gray-500 shadow-sm">
+              ما عندك صلاحية وصول لأي قسم حالياً — تواصل مع المدير العام
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {navCards.map((card) => (
+                <button
+                  key={card.href}
+                  type="button"
+                  onClick={() => router.push(card.href)}
+                  style={{ backgroundColor: card.bg }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = card.bgHover)}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = card.bg)}
+                  className="text-right rounded-[2rem] p-6 text-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-xl font-bold">{card.title}</h3>
 
-                  {card.badge && (
-                    <span className="bg-white/20 border border-white/30 text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">
-                      {card.badge}
-                    </span>
-                  )}
-                </div>
+                    {card.badge && (
+                      <span className="bg-white/20 border border-white/30 text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">
+                        {card.badge}
+                      </span>
+                    )}
+                  </div>
 
-                <p className="text-white/80 mt-3 text-sm leading-6">{card.description}</p>
-              </button>
-            ))}
-          </div>
+                  <p className="text-white/80 mt-3 text-sm leading-6">{card.description}</p>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </main>
