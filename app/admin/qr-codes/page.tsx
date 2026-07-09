@@ -41,8 +41,8 @@ type QrImportSummary = {
 export default function AdminQrCodesPage() {
   const router = useRouter();
 
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [items, setItems] = useState<QrCodeItem[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -72,6 +72,30 @@ export default function AdminQrCodesPage() {
   useEffect(() => {
     loadQrCodes();
   }, [loadQrCodes]);
+
+  // حارس الصلاحيات: يمنع أي حد ما عنده صلاحية "أكواد QR" من فتح الصفحة
+  // حتى لو كتب الرابط مباشرة بالمتصفح
+  useEffect(() => {
+    const role = localStorage.getItem("galtex_admin_role");
+    let permitted = role === "admin";
+
+    if (!permitted) {
+      try {
+        const raw = localStorage.getItem("galtex_admin_permissions");
+        const perms = raw ? JSON.parse(raw) : {};
+        permitted = Boolean(perms.qr_codes);
+      } catch {
+        permitted = false;
+      }
+    }
+
+    if (!permitted) {
+      router.replace("/admin");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [router]);
 
   function getQrStatus(item: QrCodeItem): FilterStatus {
     if (item.seller_used_by && item.mechanic_used_by) return "completed";
@@ -116,47 +140,9 @@ export default function AdminQrCodesPage() {
     });
   }, [items, searchText, filterStatus]);
 
-  const visibleIds = filteredItems.map((item) => item.id);
-
-  const allVisibleSelected =
-    visibleIds.length > 0 &&
-    visibleIds.every((id) => selectedIds.includes(id));
-
-  function toggleSelect(id: string) {
-    setSelectedIds((previous) =>
-      previous.includes(id)
-        ? previous.filter((itemId) => itemId !== id)
-        : [...previous, id]
-    );
-  }
-
-  function toggleSelectAllVisible() {
-    if (allVisibleSelected) {
-      setSelectedIds((previous) =>
-        previous.filter((id) => !visibleIds.includes(id))
-      );
-      return;
-    }
-
-    setSelectedIds((previous) => {
-      const next = new Set(previous);
-      visibleIds.forEach((id) => next.add(id));
-      return Array.from(next);
-    });
-  }
-
   function resetFilters() {
     setSearchText("");
     setFilterStatus("all");
-  }
-
-  function goToPrintLabels() {
-    if (selectedIds.length === 0) {
-      setMessage("يرجى اختيار كود QR واحد على الأقل للطباعة");
-      return;
-    }
-
-    router.push(`/admin/labels/print?ids=${selectedIds.join(",")}`);
   }
 
   /* استيراد أكواد QR قديمة من النظام السابق: ملف إكسل بعمودين — "رقم الصنف"
@@ -240,6 +226,8 @@ export default function AdminQrCodesPage() {
     }
   }
 
+  if (isAuthorized !== true) return null;
+
   return (
     <main
       className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100 p-4 md:p-8"
@@ -261,14 +249,6 @@ export default function AdminQrCodesPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={goToPrintLabels}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-2xl font-bold transition"
-              >
-                طباعة الليبلات المحددة ({selectedIds.length})
-              </button>
-
               <label
                 className={`px-6 py-3 rounded-2xl font-bold transition cursor-pointer text-center ${
                   isImportingQr
@@ -432,24 +412,10 @@ export default function AdminQrCodesPage() {
         </section>
 
         <section className="bg-white rounded-[2rem] shadow-xl p-6 md:p-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">
-                قائمة أكواد QR
-              </h2>
-
-              <p className="text-gray-500 mt-2">
-                المحدد للطباعة: {selectedIds.length}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={goToPrintLabels}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl font-bold transition"
-            >
-              طباعة الليبلات المحددة
-            </button>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">
+              قائمة أكواد QR
+            </h2>
           </div>
 
           {isLoading ? (
@@ -465,14 +431,6 @@ export default function AdminQrCodesPage() {
               <table className="w-full text-right border-separate border-spacing-y-3">
                 <thead>
                   <tr className="text-blue-900 text-sm">
-                    <th className="px-4">
-                      <input
-                        type="checkbox"
-                        checked={allVisibleSelected}
-                        onChange={toggleSelectAllVisible}
-                        className="w-5 h-5"
-                      />
-                    </th>
                     <th className="px-4">المنتج</th>
                     <th className="px-4">رقم الصنف</th>
                     <th className="px-4">Token</th>
@@ -490,23 +448,12 @@ export default function AdminQrCodesPage() {
                     <tr
                       key={item.id}
                       className={`transition ${
-                        selectedIds.includes(item.id)
-                          ? "bg-green-50"
-                          : item.is_legacy_import
+                        item.is_legacy_import
                           ? "bg-amber-50 hover:bg-amber-100"
                           : "bg-slate-50 hover:bg-blue-50"
                       }`}
                     >
                       <td className="p-4 rounded-r-2xl">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(item.id)}
-                          onChange={() => toggleSelect(item.id)}
-                          className="w-5 h-5"
-                        />
-                      </td>
-
-                      <td className="p-4">
                         <div className="flex items-center gap-3">
                           {item.product_image_url ? (
                             <div className="w-14 h-14 bg-white border border-slate-200 rounded-xl overflow-hidden">

@@ -87,6 +87,7 @@ type RedeemModalState = {
 export default function AdminCustomersPage() {
   const router = useRouter();
 
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [pendingCustomers, setPendingCustomers] = useState<PendingCustomer[]>([]);
   const [pendingPasswordResets, setPendingPasswordResets] = useState<PendingPasswordReset[]>([]);
   const [pendingDeviceTransfers, setPendingDeviceTransfers] = useState<PendingDeviceTransfer[]>([]);
@@ -164,6 +165,30 @@ export default function AdminCustomersPage() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  // حارس الصلاحيات: يمنع أي حد ما عنده صلاحية "إدارة العملاء" من فتح
+  // الصفحة حتى لو كتب الرابط مباشرة بالمتصفح
+  useEffect(() => {
+    const role = localStorage.getItem("galtex_admin_role");
+    let permitted = role === "admin";
+
+    if (!permitted) {
+      try {
+        const raw = localStorage.getItem("galtex_admin_permissions");
+        const perms = raw ? JSON.parse(raw) : {};
+        permitted = Boolean(perms.customers);
+      } catch {
+        permitted = false;
+      }
+    }
+
+    if (!permitted) {
+      router.replace("/admin");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [router]);
 
   // ============== طلبات التسجيل المعلقة ==============
   async function approveCustomer(customerId: string) {
@@ -478,6 +503,8 @@ export default function AdminCustomersPage() {
     setStatementItems(data || []);
     setIsLoadingStatement(false);
   }
+
+  if (isAuthorized !== true) return null;
 
   return (
     <main

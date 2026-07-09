@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
@@ -39,6 +39,10 @@ export default function AdminLoginPage() {
     localStorage.setItem("galtex_admin_username", data.username);
     localStorage.setItem("galtex_admin_name", data.full_name);
     localStorage.setItem("galtex_admin_role", data.role);
+    // صلاحيات الموظف المرنة (كائن JSON) — تُستخدم لإخفاء/إظهار الأقسام
+    // بلوحة الإدارة. المدير العام (role === "admin") ما يحتاجها لأن عنده
+    // كل الصلاحيات دائمًا بغض النظر عن محتواها.
+    localStorage.setItem("galtex_admin_permissions", JSON.stringify(data.permissions || {}));
 
     router.push("/admin");
   }

@@ -71,6 +71,7 @@ const emptyForm: ProductForm = {
 export default function AdminProductsPage() {
   const router = useRouter();
 
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [templates, setTemplates] = useState<LabelTemplate[]>([]);
   const [form, setForm] = useState<ProductForm>(emptyForm);
@@ -167,6 +168,30 @@ export default function AdminProductsPage() {
 
     setTemplates((data || []) as LabelTemplate[]);
   }, []);
+
+  // حارس الصلاحيات: يمنع أي حد ما عنده صلاحية "المنتجات" من فتح الصفحة
+  // حتى لو كتب الرابط مباشرة بالمتصفح
+  useEffect(() => {
+    const role = localStorage.getItem("galtex_admin_role");
+    let permitted = role === "admin";
+
+    if (!permitted) {
+      try {
+        const raw = localStorage.getItem("galtex_admin_permissions");
+        const perms = raw ? JSON.parse(raw) : {};
+        permitted = Boolean(perms.products);
+      } catch {
+        permitted = false;
+      }
+    }
+
+    if (!permitted) {
+      router.replace("/admin");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [router]);
 
   useEffect(() => {
     loadProducts();
@@ -791,6 +816,8 @@ console.log("3", ids);
       event.target.value = "";
     }
   }
+
+  if (isAuthorized !== true) return null;
 
   return (
     <main

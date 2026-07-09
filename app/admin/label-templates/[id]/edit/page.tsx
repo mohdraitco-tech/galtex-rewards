@@ -620,6 +620,7 @@ export default function EditLabelTemplatePage() {
   const [fields, setFields] = useState<TemplateField[]>(defaultFields);
   const [selectedId, setSelectedId] = useState("logo");
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [zoom, setZoom] = useState(6);
@@ -665,6 +666,30 @@ export default function EditLabelTemplatePage() {
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // حارس الصلاحيات: يمنع أي حد ما عنده صلاحية "قوالب الليبل" من فتح
+  // الصفحة حتى لو كتب الرابط مباشرة بالمتصفح
+  useEffect(() => {
+    const role = localStorage.getItem("galtex_admin_role");
+    let permitted = role === "admin";
+
+    if (!permitted) {
+      try {
+        const raw = localStorage.getItem("galtex_admin_permissions");
+        const perms = raw ? JSON.parse(raw) : {};
+        permitted = Boolean(perms.label_templates);
+      } catch {
+        permitted = false;
+      }
+    }
+
+    if (!permitted) {
+      router.replace("/admin");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [router]);
 
   // ---- تفاعل السحب/التكبير/التدوير: مُسجَّل مرة واحدة + مُقيَّد بمعدّل الفريم ----
   useEffect(() => {
@@ -1200,6 +1225,8 @@ export default function EditLabelTemplatePage() {
     setSelectedId(field.id);
     setRotating({ id: field.id });
   }, []);
+
+  if (isAuthorized !== true) return null;
 
   if (loading) {
     return (
