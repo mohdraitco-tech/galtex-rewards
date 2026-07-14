@@ -4,6 +4,23 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
+/* ============================================================
+   GALTEX Rewards — سجل النقاط (/rewards/history)
+   الشكل: تصميم Claude Design الجديد (History) — كحلي/ذهبي/بيج
+   المنطق: نفس منطق النظام (get_customer_point_history + summary) — لم يُمَس
+   ============================================================ */
+
+const C = {
+  navy: "#0E2C5C",
+  blue: "#16407F",
+  gold: "#C4952E",
+  goldDark: "#8F6819",
+  beige: "#F5F2EC",
+  cream: "#FFFDF8",
+  slate: "#586377",
+  ink: "#7A8498",
+};
+
 type PointHistoryItem = {
   id: string;
   product_number: string;
@@ -86,164 +103,128 @@ export default function PointsHistoryPage() {
   }, [loadHistory]);
 
   return (
-    <main
-      className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100 p-4 md:p-8"
-      dir="rtl"
-    >
-      <div className="max-w-5xl mx-auto">
-        <section className="bg-white rounded-[2rem] shadow-xl p-6 md:p-10">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-blue-900">
-              سجل النقاط
-            </h1>
+    <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif", background: C.beige, color: C.navy, minHeight: "100vh" }}>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-            <p className="text-gray-500 mt-3">
-              تابع عمليات المسح وحالة نقاطك
-            </p>
+      {/* ===== HEADER ===== */}
+      <header style={{ background: "rgba(245,242,236,0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(18,44,92,0.08)", position: "sticky", top: 0, zIndex: 40 }}>
+        <nav className="gx-nav" style={{ maxWidth: 1080, margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <img src="/galtex-logo.png" alt="GALTEX" style={{ height: 38, width: "auto", display: "block" }} />
+            <span style={{ width: 1, height: 28, background: "rgba(18,44,92,0.15)" }} />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 12, height: 12, background: C.gold, display: "inline-block", clipPath: "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)" }} />
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.goldDark }}>مكافآت</span>
+            </span>
           </div>
-
-          {message && (
-            <div className="mt-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-center">
-              {message}
-            </div>
-          )}
-
-          {!isLoading && (
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-3xl p-6 shadow-md">
-                <p className="text-blue-100 text-lg">
-                  إجمالي النقاط المفرج عنها
-                </p>
-
-                <p className="text-5xl font-bold mt-4">
-                  {releasedPoints}
-                </p>
-
-                <div className="flex items-center gap-2 mt-4">
-                  <span className="w-3 h-3 rounded-full bg-white" />
-
-                  <span className="text-blue-100">
-                    نقاط جاهزة للاستخدام
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-3xl p-6 shadow-sm">
-                <p className="text-yellow-800 text-lg font-bold">
-                  إجمالي النقاط الموقفة
-                </p>
-
-                <p className="text-5xl font-bold mt-4 text-yellow-700">
-                  {pendingPoints}
-                </p>
-
-                <div className="flex items-center gap-2 mt-4">
-                  <span className="w-3 h-3 rounded-full bg-yellow-400" />
-
-                  <span className="text-yellow-700">
-                    بانتظار قراءة الميكانيكي للرمز
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="text-center py-16 text-blue-800 font-bold">
-              جاري تحميل سجل النقاط...
-            </div>
-          ) : history.length === 0 ? (
-            <div className="mt-8 bg-slate-50 border border-slate-200 rounded-3xl p-10 text-center">
-              <p className="text-gray-500 font-semibold">
-                لا توجد عمليات نقاط حتى الآن
-              </p>
-            </div>
-          ) : (
-            <div className="mt-8 overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-blue-50 text-blue-900">
-                    <th className="p-4 text-right rounded-tr-2xl">
-                      رقم الصنف
-                    </th>
-
-                    <th className="p-4 text-right">
-                      تاريخ المسح
-                    </th>
-
-                    <th className="p-4 text-center">
-                      عدد النقاط
-                    </th>
-
-                    <th className="p-4 text-center rounded-tl-2xl">
-                      الحالة
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {history.map((item) => {
-                    const isReleased = item.status === "released";
-
-                    return (
-                      <tr
-                        key={`${item.status}-${item.id}`}
-                        className="border-b border-slate-100 hover:bg-slate-50 transition"
-                      >
-                        <td className="p-4 font-bold text-blue-900">
-                          {item.product_number || "-"}
-                        </td>
-
-                        <td className="p-4 text-gray-600">
-                          {new Date(
-                            item.created_at
-                          ).toLocaleString("ar-SA")}
-                        </td>
-
-                        <td className="p-4 text-center">
-                          <span className="text-xl font-bold text-blue-900">
-                            {item.points}
-                          </span>
-                        </td>
-
-                        <td className="p-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <span
-                              className={`w-3 h-3 rounded-full ${
-                                isReleased
-                                  ? "bg-blue-600"
-                                  : "bg-yellow-400"
-                              }`}
-                            />
-
-                            <span
-                              className={`font-bold ${
-                                isReleased
-                                  ? "text-blue-700"
-                                  : "text-yellow-700"
-                              }`}
-                            >
-                              {item.status_label}
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
           <button
             type="button"
             onClick={() => router.push("/rewards")}
-            className="w-full mt-8 bg-white border border-blue-200 hover:bg-blue-50 text-blue-800 font-bold rounded-2xl p-5 transition"
+            style={{ background: "none", border: "none", color: C.blue, fontFamily: "inherit", fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}
           >
-            العودة إلى لوحة المكافآت
+            ‹ لوحة المكافآت
           </button>
-        </section>
-      </div>
-    </main>
+        </nav>
+      </header>
+
+      <main className="gx-main" style={{ maxWidth: 1080, margin: "0 auto", padding: "40px 28px 64px" }}>
+        {/* title */}
+        <div style={{ marginBottom: 26 }}>
+          <h1 style={{ fontSize: "clamp(26px,3vw,34px)", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 6px", color: C.navy }}>سجل النقاط</h1>
+          <p style={{ fontSize: 16, color: C.slate, margin: 0 }}>تابع عمليات المسح وحالة نقاطك</p>
+        </div>
+
+        {message && (
+          <div style={{ background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.25)", color: "#C0392B", borderRadius: 16, padding: 16, textAlign: "center", fontWeight: 600, marginBottom: 22 }}>
+            {message}
+          </div>
+        )}
+
+        {/* summary cards */}
+        {!isLoading && (
+          <div className="gx-sum" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+            {/* released (navy) */}
+            <div style={{ position: "relative", background: `linear-gradient(140deg, ${C.blue} 0%, ${C.navy} 100%)`, borderRadius: 20, padding: "28px 30px", color: C.beige, overflow: "hidden", boxShadow: "0 24px 46px -28px rgba(18,44,92,0.6)" }}>
+              <span style={{ position: "absolute", top: -40, insetInlineStart: -30, width: 150, height: 150, background: "rgba(196,149,46,0.14)", clipPath: "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)", animation: "gxFloat 6s ease-in-out infinite" }} />
+              <div style={{ position: "relative", zIndex: 1, fontSize: 14.5, color: "#C6D2EA", marginBottom: 8 }}>إجمالي النقاط المفرَج عنها</div>
+              <div style={{ position: "relative", zIndex: 1, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 52, lineHeight: 1 }}>{releasedPoints}</div>
+              <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: C.beige }} />
+                <span style={{ fontSize: 14, color: "#C6D2EA" }}>نقاط جاهزة للاستخدام</span>
+              </div>
+            </div>
+            {/* pending (gold tint) */}
+            <div style={{ background: "#FBF3DC", border: "1px solid rgba(196,149,46,0.35)", borderRadius: 20, padding: "28px 30px" }}>
+              <div style={{ fontSize: 14.5, color: C.goldDark, fontWeight: 600, marginBottom: 8 }}>إجمالي النقاط الموقوفة</div>
+              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 52, lineHeight: 1, color: C.goldDark }}>{pendingPoints}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: C.gold }} />
+                <span style={{ fontSize: 14, color: "#9A7A2E" }}>بانتظار قراءة الميكانيكي للرمز</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* table */}
+        {isLoading ? (
+          <div style={{ textAlign: "center", padding: "64px 0", color: C.blue, fontWeight: 700 }}>جاري تحميل سجل النقاط...</div>
+        ) : history.length === 0 ? (
+          <div style={{ background: C.cream, border: "1px solid rgba(18,44,92,0.1)", borderRadius: 20, padding: 40, textAlign: "center", color: C.ink, fontWeight: 600 }}>
+            لا توجد عمليات نقاط حتى الآن
+          </div>
+        ) : (
+          <div className="gx-tablewrap" style={{ background: C.cream, border: "1px solid rgba(18,44,92,0.1)", borderRadius: 20, overflow: "hidden" }}>
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "1.3fr 2fr 1fr 1fr", gap: 16, padding: "16px 26px", background: "rgba(18,44,92,0.04)", fontSize: 13.5, fontWeight: 600, color: C.slate }}>
+                <span>رقم الصنف</span>
+                <span>تاريخ المسح</span>
+                <span style={{ textAlign: "center" }}>عدد النقاط</span>
+                <span style={{ textAlign: "center" }}>الحالة</span>
+              </div>
+
+              {history.map((item) => {
+                const isReleased = item.status === "released";
+                return (
+                  <div key={`${item.status}-${item.id}`} style={{ display: "grid", gridTemplateColumns: "1.3fr 2fr 1fr 1fr", gap: 16, padding: "20px 26px", borderTop: "1px solid rgba(18,44,92,0.07)", alignItems: "center" }}>
+                    <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 17, color: C.navy }}>{item.product_number || "-"}</span>
+                    <span style={{ fontSize: 14.5, color: C.slate }}>{new Date(item.created_at).toLocaleString("ar-SA")}</span>
+                    <span style={{ textAlign: "center", fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 17, color: isReleased ? C.blue : C.goldDark }}>{item.points}</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: "50%", background: isReleased ? C.blue : C.gold }} />
+                      <span style={{ fontSize: 14.5, fontWeight: 600, color: isReleased ? C.blue : C.goldDark }}>{item.status_label}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => router.push("/rewards")}
+          style={{ display: "block", width: "100%", textAlign: "center", marginTop: 20, background: C.cream, color: C.blue, fontFamily: "inherit", fontWeight: 700, fontSize: 15, padding: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 13, cursor: "pointer" }}
+        >
+          العودة إلى لوحة المكافآت
+        </button>
+      </main>
+
+      <footer style={{ borderTop: "1px solid rgba(18,44,92,0.08)", background: "#ECE7DD" }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "22px 28px", textAlign: "center" }}>
+          <span style={{ fontSize: 13, color: C.ink }}>© ٢٠٢٦ GALTEX — نظام مكافآت العملاء</span>
+        </div>
+      </footer>
+
+      <style>{`
+        @keyframes gxFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @media (max-width:760px){
+          .gx-sum { grid-template-columns:1fr !important; }
+          .gx-main { padding:26px 18px 48px !important; }
+          .gx-nav { padding:14px 18px !important; }
+          .gx-tablewrap { overflow-x:auto !important; -webkit-overflow-scrolling:touch; }
+          .gx-tablewrap > div { min-width:520px; }
+        }
+      `}</style>
+    </div>
   );
 }
