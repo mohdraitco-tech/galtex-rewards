@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
@@ -40,8 +41,7 @@ export default function AdminLoginPage() {
     localStorage.setItem("galtex_admin_name", data.full_name);
     localStorage.setItem("galtex_admin_role", data.role);
     // صلاحيات الموظف المرنة (كائن JSON) — تُستخدم لإخفاء/إظهار الأقسام
-    // بلوحة الإدارة. المدير العام (role === "admin") ما يحتاجها لأن عنده
-    // كل الصلاحيات دائمًا بغض النظر عن محتواها.
+    // بلوحة الإدارة. المدير العام ما يحتاجها لأن عنده كل الصلاحيات دائمًا.
     localStorage.setItem("galtex_admin_permissions", JSON.stringify(data.permissions || {}));
 
     router.push("/admin");
@@ -54,6 +54,16 @@ export default function AdminLoginPage() {
     >
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8">
         <div className="text-center mb-8">
+          <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-3xl bg-white shadow-md ring-1 ring-slate-100">
+            <Image
+              src="/galtex-logo.png"
+              alt="GALTEX"
+              width={96}
+              height={96}
+              priority
+              className="h-24 w-24 object-contain"
+            />
+          </div>
           <h1 className="text-4xl font-bold text-blue-900 tracking-wide">GALTEX</h1>
           <p className="text-3xl font-bold text-blue-700 mt-2">Rewards</p>
           <p className="text-gray-500 mt-3">لوحة تحكم الإدارة</p>

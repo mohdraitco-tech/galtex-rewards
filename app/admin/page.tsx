@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
@@ -170,14 +171,26 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <section className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-[2rem] shadow-xl p-8 text-white">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div>
-              <h1 className="text-4xl font-bold">GALTEX Rewards</h1>
-              <p className="text-blue-100 mt-3 text-lg">لوحة تحكم الإدارة</p>
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-1.5 shadow-md shrink-0">
+                <Image
+                  src="/galtex-logo.png"
+                  alt="GALTEX"
+                  width={56}
+                  height={56}
+                  priority
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold">GALTEX Rewards</h1>
+                <p className="text-blue-100 mt-3 text-lg">لوحة تحكم الإدارة</p>
               {adminName && (
                 <p className="text-blue-200 mt-2 text-sm">
                   مرحباً، {adminName} {!isFullAccess && "— موظف"}
                 </p>
               )}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-3">

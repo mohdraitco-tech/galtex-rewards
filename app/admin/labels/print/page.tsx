@@ -159,6 +159,9 @@ export default function PrintLabelsPage() {
   const [message, setMessage] = useState("");
   const [qrImages, setQrImages] = useState<Record<string, string>>({});
   const [barcodeImages, setBarcodeImages] = useState<Record<string, string>>({});
+  // تتبّع: هل طُبعت هذي الليبلات من صفحة الطباعة الحالية؟ (منع طباعة مكررة بالغلط)
+  const [hasPrintedOnce, setHasPrintedOnce] = useState(false);
+  const [showReprintWarning, setShowReprintWarning] = useState(false);
 
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === selectedTemplateId) || null,
@@ -198,6 +201,7 @@ export default function PrintLabelsPage() {
     if (autoPrint === "1") {
       didAutoPrintRef.current = true;
       setTimeout(() => {
+        setHasPrintedOnce(true);
         window.print();
       }, 1200);
     }
@@ -305,6 +309,23 @@ setTemplates(activeTemplates);
   console.log("Total:", performance.now() - start);
   
 }
+
+  // يُستدعى عند ضغط زر "طباعة": لو طُبعت الليبلات قبل بنفس الصفحة → تحذير،
+  // غير كذا → طباعة مباشرة
+  function handlePrintClick() {
+    if (hasPrintedOnce) {
+      setShowReprintWarning(true);
+      return;
+    }
+    doPrint();
+  }
+
+  // ينفّذ الطباعة الفعلية ويسجّل أنها طُبعت مرة
+  function doPrint() {
+    setShowReprintWarning(false);
+    setHasPrintedOnce(true);
+    window.print();
+  }
 
   function qrUrl(token: string) {
   return QRCode.toDataURL(token, {
@@ -537,7 +558,7 @@ useEffect(() => {
             <p className="mt-2 text-slate-500">عدد الليبلات المحددة: {labels.length}</p>
           </div>
 
-          <div className="flex items-end gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <div>
               <label className="mb-2 block text-sm font-bold">قالب الليبل</label>
 
@@ -558,9 +579,10 @@ useEffect(() => {
 
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={handlePrintClick}
               disabled={!selectedTemplate || fields.length === 0 || labels.length === 0}
-              className="rounded-xl bg-blue-700 px-7 py-3 font-bold text-white disabled:bg-gray-500"
+              style={{ backgroundColor: (!selectedTemplate || fields.length === 0 || labels.length === 0) ? "#6b7280" : "#1d4ed8" }}
+              className="rounded-xl px-7 py-3 font-bold text-white"
             >
               طباعة
             </button>
@@ -568,7 +590,10 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => router.push("/admin/products")}
-              className="rounded-xl bg-slate-700 px-6 py-3 font-bold text-white hover:bg-slate-800"
+              style={{ backgroundColor: "#334155" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1e293b")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#334155")}
+              className="rounded-xl px-6 py-3 font-bold text-white"
             >
               رجوع
             </button>
@@ -593,7 +618,15 @@ useEffect(() => {
           لا توجد ليبلات للطباعة
         </div>
       ) : (
-        <section className="labels-print-area mx-auto flex max-w-6xl flex-wrap items-start justify-center gap-5 print:max-w-none print:gap-0">
+        <section
+          className="labels-print-area mx-auto flex max-w-6xl flex-col items-center justify-start gap-5 print:max-w-none print:gap-0"
+          style={
+            {
+              "--label-w": `${selectedTemplate.width_mm}mm`,
+              "--label-h": `${selectedTemplate.height_mm}mm`,
+            } as CSSProperties
+          }
+        >
           {labels.map((label) => (
             <div
               key={label.id}
@@ -606,6 +639,7 @@ useEffect(() => {
                 borderRadius: `${selectedTemplate.border_radius || 0}mm`,
                 breakInside: "avoid",
                 pageBreakInside: "avoid",
+                pageBreakAfter: "always",
               }}
             >
               {fields
@@ -631,6 +665,78 @@ useEffect(() => {
         </section>
       )}
 
+      {showReprintWarning && (
+        <div
+          className="print:hidden"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            padding: "16px",
+          }}
+        >
+          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 text-center shadow-2xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-yellow-100 text-3xl">
+              ⚠️
+            </div>
+
+            <h2 className="mt-5 text-xl font-black text-slate-900">تنبيه: إعادة طباعة</h2>
+
+            <p className="mt-3 leading-7 text-gray-600">
+              طبعت هذي الليبلات قبل قليل. لو الورق تمزّق وتبي تعيد الطباعة، اضغط "تأكيد".
+              <br />
+              وإلا فأنت على وشك تكرار نفس أكواد QR — تأكد قبل ما تكمل.
+            </p>
+
+            <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm leading-7 text-blue-800">
+              لطباعة أكواد QR <span className="font-bold">جديدة</span>: ارجع لصفحة الأصناف، اختر المنتج،
+              حدّد الكمية المطلوبة، واضغط "إنشاء وطباعة".
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => router.push("/admin/products")}
+                style={{ backgroundColor: "#1d4ed8" }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1e40af")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1d4ed8")}
+                className="w-full rounded-2xl px-6 py-4 font-bold text-white shadow-lg"
+              >
+                الذهاب لصفحة الأصناف (لأكواد جديدة)
+              </button>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={doPrint}
+                  style={{ backgroundColor: "#16a34a" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#15803d")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#16a34a")}
+                  className="flex-1 rounded-2xl px-6 py-4 font-bold text-white shadow-lg"
+                >
+                  تأكيد — أعد الطباعة
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowReprintWarning(false)}
+                  style={{ backgroundColor: "#9ca3af" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#6b7280")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#9ca3af")}
+                  className="rounded-2xl px-6 py-4 font-bold text-white shadow-lg"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx global>{`
         @media print {
           @page {
@@ -653,16 +759,15 @@ useEffect(() => {
             visibility: visible;
           }
 
+          /* عمود واحد: كل ليبل تحت الثاني (تسلسلي) بدل جنب بعض */
           .labels-print-area {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
-            display: flex !important;
-            flex-wrap: wrap !important;
-            justify-content: flex-start !important;
+            display: block !important;
             gap: 0 !important;
           }
 
@@ -670,8 +775,17 @@ useEffect(() => {
             margin: 0 !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
+            /* كل ليبل صفحة مستقلة — يبدأ من رأس الرول بدون قصّ */
+            break-after: page !important;
+            page-break-after: always !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
+          }
+
+          /* آخر ليبل: نمنع صفحة فاضية زائدة بعده */
+          .label-print-item:last-child {
+            break-after: auto !important;
+            page-break-after: auto !important;
           }
 
           img {

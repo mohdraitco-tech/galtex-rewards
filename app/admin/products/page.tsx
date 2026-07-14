@@ -115,6 +115,8 @@ export default function AdminProductsPage() {
 
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  // الصورة المكبّرة المعروضة حاليًا (null = ما فيه صورة مكبّرة)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1253,20 +1255,20 @@ console.log("3", ids);
             </div>
           ) : (
             <div className="mt-7 overflow-x-auto rounded-2xl border border-slate-100">
-              <table className="w-full border-separate border-spacing-y-3 text-right">
+              <table className="w-full border-separate border-spacing-y-3 text-right" style={{ tableLayout: "fixed" }}>
                 <thead>
                   <tr className="text-sm text-blue-900 sticky top-0">
-                    <th className="px-4">الصورة</th>
-                    <th className="px-4">رقم الصنف</th>
-                    <th className="px-4">رقم المرجع</th>
-                    <th className="px-4">اسم المنتج</th>
-                    <th className="px-4">الاسم الإنجليزي</th>
-                    <th className="px-4">الباركود الثابت</th>
-                    <th className="px-4">التعبئة</th>
-                    <th className="px-4">النقاط</th>
-                    <th className="px-4">الحالة</th>
-                    <th className="px-4">إنشاء وطباعة</th>
-                    <th className="px-4">تحكم</th>
+                    <th className="px-2" style={{ width: "70px" }}>الصورة</th>
+                    <th className="px-2" style={{ width: "85px" }}>رقم الصنف</th>
+                    <th className="px-2" style={{ width: "95px" }}>رقم المرجع</th>
+                    <th className="px-2" style={{ width: "150px" }}>اسم المنتج</th>
+                    <th className="px-2" style={{ width: "120px" }}>الاسم الإنجليزي</th>
+                    <th className="px-2" style={{ width: "120px" }}>الباركود الثابت</th>
+                    <th className="px-2" style={{ width: "55px" }}>التعبئة</th>
+                    <th className="px-2" style={{ width: "55px" }}>النقاط</th>
+                    <th className="px-2" style={{ width: "70px" }}>الحالة</th>
+                    <th className="px-2" style={{ width: "175px" }}>إنشاء وطباعة</th>
+                    <th className="px-2" style={{ width: "150px" }}>تحكم</th>
                   </tr>
                 </thead>
 
@@ -1276,68 +1278,62 @@ console.log("3", ids);
 
                     return (
                       <tr key={product.id} className="bg-slate-50 transition hover:bg-blue-50">
-                        <td className="rounded-r-2xl p-4">
+                        <td className="rounded-r-2xl p-2 align-top">
                           {product.product_image_url ? (
-                            <div className="h-16 w-16 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => setZoomedImage(product.product_image_url)}
+                              className="h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:ring-2 hover:ring-blue-500"
+                              title="اضغط لتكبير الصورة"
+                            >
                               <img src={product.product_image_url} alt={product.product_name_ar || product.product_number} className="h-full w-full object-contain" />
-                            </div>
+                            </button>
                           ) : (
-                            <div className="flex h-16 w-16 flex-col items-center justify-center rounded-xl bg-slate-200 text-center text-gray-500">
+                            <div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-slate-200 text-center text-gray-500">
                               <span className="text-lg">🖼️</span>
                             </div>
                           )}
                         </td>
 
-                        <td className="p-4 font-bold text-blue-900" dir="ltr">{product.product_number}</td>
-                        <td className="p-4 text-gray-600" dir="ltr">{product.reference_number || "-"}</td>
-                        <td className="p-4 font-bold text-gray-800">{product.product_name_ar || "-"}</td>
-                        <td className="p-4 text-gray-600" dir="ltr">{product.product_name_en || "-"}</td>
-                        <td className="p-4 font-bold text-blue-900" dir="ltr">
+                        <td className="p-2 align-top text-sm font-bold text-blue-900 break-words" dir="ltr">{product.product_number}</td>
+                        <td className="p-2 align-top text-sm text-gray-600 break-words" dir="ltr">{product.reference_number || "-"}</td>
+                        <td className="p-2 align-top text-sm font-bold text-gray-800 break-words">{product.product_name_ar || "-"}</td>
+                        <td className="p-2 align-top text-sm text-gray-600 break-words" dir="ltr">{product.product_name_en || "-"}</td>
+                        <td className="p-2 align-top text-sm font-bold text-blue-900 break-words" dir="ltr">
                           {product.ean13_barcode || <span className="font-normal text-gray-400">لم يُولَّد بعد</span>}
                         </td>
-                        <td className="p-4">{product.packing_qty}</td>
-                        <td className="p-4"><span className="font-bold text-blue-800">{product.points}</span></td>
+                        <td className="p-2 align-top text-center text-sm">{product.packing_qty}</td>
+                        <td className="p-2 align-top text-center text-sm"><span className="font-bold text-blue-800">{product.points}</span></td>
 
-                        <td className="p-4">
-                          <span className={`rounded-full border px-3 py-1 text-sm font-bold ${product.is_active ? "border-green-100 bg-green-50 text-green-700" : "border-red-100 bg-red-50 text-red-700"}`}>
+                        <td className="p-2 align-top">
+                          <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-1 text-xs font-bold ${product.is_active ? "border-green-100 bg-green-50 text-green-700" : "border-red-100 bg-red-50 text-red-700"}`}>
                             {product.is_active ? "فعال" : "موقوف"}
                           </span>
                         </td>
 
-                        <td className="p-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <input
-                              type="number"
-                              min="1"
-                              value={qrQuantities[product.id] || "1"}
-                              onChange={(event) => setQrQuantities((previous) => ({ ...previous, [product.id]: event.target.value }))}
-                              className="w-20 rounded-xl border border-gray-300 bg-yellow-50 px-3 py-2 text-center font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600"
-                              dir="ltr"
-                            />
-
-                            <button
-                              type="button"
-                              disabled={isPrintingJob || !product.is_active}
-                              onClick={() => openPrintModal(product)}
-                              style={{ backgroundColor: "#15803d" }}
-                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#166534")}
-                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#15803d")}
-                              className="whitespace-nowrap rounded-xl px-4 py-2 font-bold text-white shadow-lg disabled:bg-gray-500"
-                            >
-                              إنشاء وطباعة
-                            </button>
-                          </div>
+                        <td className="p-2 align-top">
+                          <button
+                            type="button"
+                            disabled={isPrintingJob || !product.is_active}
+                            onClick={() => openPrintModal(product)}
+                            style={{ backgroundColor: "#15803d" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#166534")}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#15803d")}
+                            className="w-full whitespace-nowrap rounded-xl px-2 py-2 text-xs font-bold text-white shadow-lg disabled:bg-gray-500"
+                          >
+                            إنشاء وطباعة
+                          </button>
                         </td>
 
-                        <td className="rounded-l-2xl p-4">
-                          <div className="flex flex-wrap gap-2">
+                        <td className="rounded-l-2xl p-2 align-top">
+                          <div className="flex flex-col gap-2">
                             <button
                               type="button"
                               onClick={() => handleEditProduct(product)}
                               style={{ backgroundColor: "#f97316" }}
                               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ea580c")}
                               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f97316")}
-                              className="rounded-xl px-4 py-2 font-bold text-white shadow-lg"
+                              className="rounded-xl px-2 py-1.5 text-xs font-bold text-white shadow-lg"
                             >
                               تعديل
                             </button>
@@ -1349,7 +1345,7 @@ console.log("3", ids);
                                 style={{ backgroundColor: "#dc2626" }}
                                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#b91c1c")}
                                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#dc2626")}
-                                className="rounded-xl px-4 py-2 font-bold text-white shadow-lg"
+                                className="rounded-xl px-2 py-1.5 text-xs font-bold text-white shadow-lg"
                               >
                                 حذف
                               </button>
@@ -1360,7 +1356,7 @@ console.log("3", ids);
                                 style={{ backgroundColor: "#16a34a" }}
                                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#15803d")}
                                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#16a34a")}
-                                className="rounded-xl px-4 py-2 font-bold text-white shadow-lg"
+                                className="rounded-xl px-2 py-1.5 text-xs font-bold text-white shadow-lg"
                               >
                                 تفعيل
                               </button>
@@ -1457,6 +1453,58 @@ console.log("3", ids);
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {zoomedImage && (
+        <div
+          onClick={() => setZoomedImage(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(0,0,0,0.8)",
+            padding: "24px",
+            cursor: "zoom-out",
+          }}
+        >
+          <img
+            src={zoomedImage}
+            alt="صورة المنتج مكبّرة"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "90vw",
+              maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: "16px",
+              backgroundColor: "#fff",
+              padding: "12px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setZoomedImage(null)}
+            style={{
+              position: "fixed",
+              top: "20px",
+              left: "20px",
+              width: "44px",
+              height: "44px",
+              borderRadius: "9999px",
+              backgroundColor: "#fff",
+              color: "#0f172a",
+              fontSize: "22px",
+              fontWeight: "bold",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            }}
+            aria-label="إغلاق"
+          >
+            ✕
+          </button>
         </div>
       )}
 
