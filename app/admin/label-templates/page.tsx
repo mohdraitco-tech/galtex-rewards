@@ -155,6 +155,10 @@ type TemplateField = {
   imageData?: string;
   fontSize?: number;
   textAlign?: TextAlign;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  color?: string;
   zIndex?: number;
 };
 
@@ -197,12 +201,12 @@ const ADD_ELEMENTS: { type: FieldType; label: string; Icon: (p: IconProps) => Re
 ];
 
 const defaultFields: TemplateField[] = [
-  { id: "logo", type: "logo", label: "Logo", x: 3, y: 3, w: 22, h: 9, rotate: 0, visible: true, fontSize: 12, textAlign: "center", zIndex: 1 },
+  { id: "logo", type: "logo", label: "Logo", x: 3, y: 3, w: 22, h: 9, rotate: 0, visible: true, fontSize: 12, textAlign: "center", bold: true, italic: false, underline: false, color: "#0F172A", zIndex: 1 },
   { id: "product_image", type: "product_image", label: "Product Image", x: 3, y: 15, w: 24, h: 18, rotate: 0, visible: true, zIndex: 2 },
-  { id: "product_name_ar", type: "product_name_ar", label: "Product Name", x: 31, y: 4, w: 25, h: 9, rotate: 0, visible: true, fontSize: 11, textAlign: "center", zIndex: 3 },
-  { id: "part_number", type: "part_number", label: "Part Number", x: 31, y: 16, w: 28, h: 7, rotate: 0, visible: true, fontSize: 10, textAlign: "center", zIndex: 4 },
-  { id: "reference_number", type: "reference_number", label: "Reference Number", x: 55, y: 16, w: 22, h: 7, rotate: 0, visible: true, fontSize: 10, textAlign: "center", zIndex: 5 },
-  { id: "packing_qty", type: "packing_qty", label: "Packing Qty", x: 31, y: 27, w: 22, h: 7, rotate: 0, visible: true, fontSize: 10, textAlign: "center", zIndex: 6 },
+  { id: "product_name_ar", type: "product_name_ar", label: "Product Name", x: 31, y: 4, w: 25, h: 9, rotate: 0, visible: true, fontSize: 11, textAlign: "center", bold: true, italic: false, underline: false, color: "#0F172A", zIndex: 3 },
+  { id: "part_number", type: "part_number", label: "Part Number", x: 31, y: 16, w: 28, h: 7, rotate: 0, visible: true, fontSize: 10, textAlign: "center", bold: true, italic: false, underline: false, color: "#0F172A", zIndex: 4 },
+  { id: "reference_number", type: "reference_number", label: "Reference Number", x: 55, y: 16, w: 22, h: 7, rotate: 0, visible: true, fontSize: 10, textAlign: "center", bold: true, italic: false, underline: false, color: "#0F172A", zIndex: 5 },
+  { id: "packing_qty", type: "packing_qty", label: "Packing Qty", x: 31, y: 27, w: 22, h: 7, rotate: 0, visible: true, fontSize: 10, textAlign: "center", bold: true, italic: false, underline: false, color: "#0F172A", zIndex: 6 },
   { id: "barcode", type: "barcode", label: "Barcode", x: 55, y: 26, w: 22, h: 9, rotate: 0, visible: true, zIndex: 7 },
   { id: "qr_code", type: "qr_code", label: "QR Code", x: 65, y: 4, w: 11, h: 11, rotate: 0, visible: true, zIndex: 8 },
 ];
@@ -241,6 +245,10 @@ function readFields(settings: any, templateData: any): TemplateField[] {
       imageData: field.imageData,
       fontSize: Number(field.fontSize ?? 11),
       textAlign: field.textAlign || "center",
+      bold: field.bold === true,
+      italic: field.italic === true,
+      underline: field.underline === true,
+      color: field.color || "#0F172A",
       zIndex: Number(field.zIndex ?? index + 1),
     }));
   }
@@ -260,6 +268,10 @@ function readFields(settings: any, templateData: any): TemplateField[] {
       imageData: value?.imageData,
       fontSize: Number(value?.fontSize ?? 11),
       textAlign: value?.textAlign || "center",
+      bold: value?.bold === true,
+      italic: value?.italic === true,
+      underline: value?.underline === true,
+      color: value?.color || "#0F172A",
       zIndex: Number(value?.zIndex ?? index + 1),
     }));
   }
@@ -289,15 +301,19 @@ function clamp(value: number, min: number, max: number) {
    عناصر ثابتة (hoisted) — لا تعتمد على حالة المكوّن، فلا داعي لإعادة إنشائها
    في كل رندر. هذا يفيد الأداء ويسمح لـ React.memo أدناه يشتغل صح.
    ========================================================================= */
-function textStyle(field: TemplateField): React.CSSProperties {
+function textStyle(field: TemplateField, noWrap?: boolean): React.CSSProperties {
   return {
     width: "100%",
     fontSize: `${field.fontSize || 11}px`,
     textAlign: field.textAlign || "center",
     lineHeight: 1.15,
-    whiteSpace: "pre-wrap",
-    overflow: "hidden",
-    wordBreak: "break-word",
+    whiteSpace: noWrap ? "nowrap" : "pre-wrap",
+    overflow: noWrap ? "visible" : "hidden",
+    wordBreak: noWrap ? "normal" : "break-word",
+    fontWeight: field.bold === false ? 400 : 900,
+    fontStyle: field.italic ? "italic" : "normal",
+    textDecoration: field.underline ? "underline" : "none",
+    color: field.color || "#0F172A",
   };
 }
 
@@ -329,20 +345,20 @@ function renderField(field: TemplateField, isUploading?: boolean) {
   }
 
   if (field.type === "product_name_ar") {
-    return <div className="w-full font-black text-slate-900" style={textStyle(field)}>Description: BRAKE PAD</div>;
+    return <div className="w-full font-black text-slate-900" style={textStyle(field, true)}>Description: BRAKE PAD</div>;
   }
 
 
   if (field.type === "part_number") {
-    return <div className="w-full font-black text-slate-900" style={textStyle(field)}>ITEM NO : GFB-1001</div>;
+    return <div className="w-full font-black text-slate-900" style={textStyle(field, true)}>ITEM NO : GFB-1001</div>;
   }
 
   if (field.type === "reference_number") {
-    return <div className="w-full font-black text-slate-900" style={textStyle(field)}>Ref: REF-1001</div>;
+    return <div className="w-full font-black text-slate-900" style={textStyle(field, true)}>Ref: REF-1001</div>;
   }
 
   if (field.type === "packing_qty") {
-    return <div className="w-full font-black text-slate-900" style={textStyle(field)}>QTY: 4 PCS</div>;
+    return <div className="w-full font-black text-slate-900" style={textStyle(field, true)}>QTY: 4 PCS</div>;
   }
 
   if (field.type === "barcode") {
@@ -541,9 +557,9 @@ function ToolbarButton({
   tone?: "primary" | "ghost" | "danger";
 }) {
   const styles: Record<string, React.CSSProperties> = {
-    primary: { backgroundColor: COLORS.brand, color: "#fff", border: `1px solid ${COLORS.brand}` },
-    ghost: { backgroundColor: "#fff", color: COLORS.ink, border: `1px solid ${COLORS.line}` },
-    danger: { backgroundColor: "#fff", color: COLORS.danger, border: `1px solid #FCA5A5` },
+    primary: { backgroundColor: COLORS.brand, color: "#F5F2EC", border: "none" },
+    ghost: { backgroundColor: "#FFFDF8", color: COLORS.ink, border: "1px solid rgba(18,44,92,0.18)" },
+    danger: { backgroundColor: "rgba(192,57,43,0.1)", color: COLORS.danger, border: "none" },
   };
 
   return (
@@ -551,8 +567,8 @@ function ToolbarButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-      style={styles[tone]}
+      className="flex items-center gap-2 text-sm font-bold transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+      style={{ ...styles[tone], padding: "10px 18px", borderRadius: 11, fontFamily: "inherit" }}
     >
       {icon}
       <span>{label}</span>
@@ -570,22 +586,22 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-white p-5" style={{ border: `1px solid ${COLORS.line}` }}>
-      <div className="mb-4 flex items-center gap-2.5">
+    <section className="p-5" style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 16 }}>
+      <div className="mb-4 flex items-center gap-2.5" style={{ flexDirection: "row-reverse", justifyContent: "flex-end" }}>
         <span
-          className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-black text-white"
-          style={{ backgroundColor: COLORS.brand }}
+          className="flex items-center justify-center text-xs font-black text-white"
+          style={{ height: 24, width: 24, borderRadius: 8, backgroundColor: COLORS.brand }}
         >
           {index}
         </span>
-        <h2 className="text-base font-black" style={{ color: COLORS.ink }}>{title}</h2>
+        <h2 className="font-black" style={{ fontSize: 16.5, color: COLORS.ink }}>{title}</h2>
       </div>
       {children}
     </section>
   );
 }
 
-const inputStyle: React.CSSProperties = { border: `1px solid ${COLORS.line}` };
+const inputStyle: React.CSSProperties = { border: "1px solid rgba(18,44,92,0.18)", background: "#FFFDF8", color: "#0E2C5C", fontFamily: "inherit" };
 
 /* =========================================================================
    المكوّن الرئيسي
@@ -604,6 +620,7 @@ export default function EditLabelTemplatePage() {
   const [fields, setFields] = useState<TemplateField[]>(defaultFields);
   const [selectedId, setSelectedId] = useState("logo");
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [zoom, setZoom] = useState(6);
@@ -649,6 +666,30 @@ export default function EditLabelTemplatePage() {
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // حارس الصلاحيات: يمنع أي حد ما عنده صلاحية "قوالب الليبل" من فتح
+  // الصفحة حتى لو كتب الرابط مباشرة بالمتصفح
+  useEffect(() => {
+    const role = localStorage.getItem("galtex_admin_role");
+   let permitted = role === "admin" || role === "super_admin";
+
+    if (!permitted) {
+      try {
+        const raw = localStorage.getItem("galtex_admin_permissions");
+        const perms = raw ? JSON.parse(raw) : {};
+        permitted = Boolean(perms.label_templates);
+      } catch {
+        permitted = false;
+      }
+    }
+
+    if (!permitted) {
+      router.replace("/admin");
+      return;
+    }
+
+    setIsAuthorized(true);
+  }, [router]);
 
   // ---- تفاعل السحب/التكبير/التدوير: مُسجَّل مرة واحدة + مُقيَّد بمعدّل الفريم ----
   useEffect(() => {
@@ -1030,10 +1071,49 @@ export default function EditLabelTemplatePage() {
   }
 
   function handleGoBack() {
-    router.push("/admin/dashboard");
+    // نستخدم تاريخ المتصفح الفعلي عشان "رجوع" يوديك لنفس الصفحة اللي جيت
+    // منها بالضبط (منتجات، لوحة الإدارة، أو أي صفحة ثانية) — بدل وجهة ثابتة
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/admin");
+    }
   }
 
+  // أنواع لازم توجد مرة وحدة بس بالقالب — الضغط على "+" وهي موجودة أصلاً
+  // يحدّدها بدل ما ينشئ نسخة مكررة فوقها (هذا سبب مشكلة الصور المتكررة).
+  const SINGLE_INSTANCE_TYPES: FieldType[] = [
+    "logo",
+    "product_image",
+    "product_name_ar",
+    "part_number",
+    "reference_number",
+    "packing_qty",
+    "barcode",
+    "qr_code",
+  ];
+
   function addField(type: FieldType, label: string) {
+    if (SINGLE_INSTANCE_TYPES.includes(type)) {
+      const existing = fields.find((f) => f.type === type);
+      if (existing) {
+        setSelectedId(existing.id);
+        setMessage(`عنصر "${label}" موجود بالفعل بالقالب — تم تحديده بدل إنشاء نسخة مكررة.`);
+        return;
+      }
+    }
+
+    // "صورة حرة" ممكن تحتاج أكثر من نسخة فعلاً (صور زخرفية مختلفة)، لكن لو
+    // فيه نسخة فاضية بعد ما رفعتلها صورة، نعيد استخدامها بدل التكديس فوقها
+    if (type === "free_image") {
+      const existingEmpty = fields.find((f) => f.type === "free_image" && !f.imageData);
+      if (existingEmpty) {
+        setSelectedId(existingEmpty.id);
+        setMessage('يوجد عنصر "صورة حرة" فاضي بالفعل — تم تحديده. ارفع له صورة، أو احذفه لو ما تحتاجه قبل ما تضيف وحدة جديدة.');
+        return;
+      }
+    }
+
     const maxZ = Math.max(0, ...fields.map((field) => field.zIndex || 0));
     const newField: TemplateField = {
       id: `${type}_${Date.now()}`,
@@ -1048,6 +1128,10 @@ export default function EditLabelTemplatePage() {
       text: type === "free_text" ? "اكتب النص هنا" : undefined,
       fontSize: 11,
       textAlign: "center",
+      bold: true,
+      italic: false,
+      underline: false,
+      color: "#0F172A",
       zIndex: maxZ + 1,
     };
     setFields((current) => [...current, newField]);
@@ -1142,6 +1226,8 @@ export default function EditLabelTemplatePage() {
     setRotating({ id: field.id });
   }, []);
 
+  if (isAuthorized !== true) return null;
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center" style={{ backgroundColor: COLORS.canvasBg }}>
@@ -1163,10 +1249,10 @@ export default function EditLabelTemplatePage() {
 
   return (
     <main
-      className="min-h-screen"
+      className="min-h-screen gtx-page"
       style={
         {
-          backgroundColor: COLORS.canvasBg,
+          backgroundColor: "#F5F2EC",
           "--gtx-accent": COLORS.accent,
           "--gtx-brand": COLORS.brand,
         } as React.CSSProperties
@@ -1176,26 +1262,37 @@ export default function EditLabelTemplatePage() {
       {/* CSS خام (ليس كلاسات Tailwind) لمقابض التحكم — يضمن ظهورها دائمًا
           بدل الاعتماد على كلاسات لم تُستخدم سابقًا بالمشروع وتختفي أحيانًا */}
       <style>{HANDLES_STYLE_TAG}</style>
+      <style>{`.gtx-page, .gtx-page * { font-family: 'IBM Plex Sans Arabic', sans-serif; }`}</style>
 
-      {/* ===== Header / Toolbar ===== */}
-      <header className="sticky top-0 z-50 bg-white px-5 py-4" style={{ borderBottom: `1px solid ${COLORS.line}` }}>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+      {/* ===== Header علوي خفيف (شعار GALTEX) ===== */}
+      <header className="sticky top-0 z-50" style={{ background: "rgba(245,242,236,0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(18,44,92,0.08)", padding: "16px 28px" }}>
+        <div className="mx-auto flex max-w-[2000px] items-center justify-between gap-4">
+          <div className="flex items-center" style={{ gap: 11 }}>
+            <img src="/galtex-logo.png" alt="GALTEX" style={{ height: 32, width: "auto", display: "block" }} />
+            <span style={{ width: 1, height: 26, background: "rgba(18,44,92,0.15)" }} />
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: "#C4952E" }}>الإدارة</span>
+          </div>
+          <button type="button" onClick={handleGoBack} style={{ background: "none", border: "none", color: "#16407F", fontFamily: "inherit", fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>‹ لوحة التحكم</button>
+        </div>
+      </header>
+
+      {/* ===== Toolbar: عنوان الصفحة + أزرار التحكم ===== */}
+      <div style={{ background: "#FFFDF8", borderBottom: "1px solid rgba(18,44,92,0.08)", padding: "18px 28px" }}>
         <div className="mx-auto flex max-w-[2000px] flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white"
-              style={{ backgroundColor: COLORS.brand }}
-            >
-              GX
-            </span>
+            <span className="flex items-center justify-center text-sm font-black text-white" style={{ height: 44, width: 44, borderRadius: 12, backgroundColor: COLORS.brand }}>GX</span>
             <div>
-              <h1 className="text-xl font-black" style={{ color: COLORS.ink }}>تعديل قالب الليبل</h1>
-              <p className="text-xs font-medium" style={{ color: COLORS.sub }}>
+              <h1 className="font-black" style={{ fontSize: 21, color: COLORS.ink, margin: 0 }}>تعديل قالب الليبل</h1>
+              <p className="font-medium" style={{ fontSize: 12.5, color: COLORS.sub, margin: "2px 0 0" }}>
                 تحكم حر بالماوس لكل عنصر داخل الليبل — {template.width_mm} × {template.height_mm} مم
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <ToolbarButton icon={<IconArrowBack size={16} />} label="رجوع" onClick={handleGoBack} />
             <ToolbarButton icon={<IconPlus size={16} />} label="جديد" onClick={() => openNewTemplate(true)} />
             <ToolbarButton icon={<IconInfo size={16} />} label="تعديل" onClick={handleEditMode} />
             <ToolbarButton icon={<IconSearch size={16} />} label="استعلام" onClick={handleQueryCurrent} />
@@ -1206,7 +1303,6 @@ export default function EditLabelTemplatePage() {
               disabled={saving}
               tone="danger"
             />
-            <span className="mx-1 h-8 w-px" style={{ backgroundColor: COLORS.line }} />
             <ToolbarButton
               icon={<IconSave size={16} />}
               label={saving ? "جاري الحفظ..." : "حفظ"}
@@ -1214,10 +1310,9 @@ export default function EditLabelTemplatePage() {
               disabled={saving}
               tone="primary"
             />
-            <ToolbarButton icon={<IconArrowBack size={16} />} label="رجوع" onClick={handleGoBack} />
           </div>
         </div>
-      </header>
+      </div>
 
       {/* ===== شريط إضافة العناصر — كامل العرض تحت الهيدر مباشرة ===== */}
       <div className="bg-white" style={{ borderBottom: `1px solid ${COLORS.line}` }}>
@@ -1437,6 +1532,56 @@ export default function EditLabelTemplatePage() {
                           </button>
                         );
                       })}
+                    </div>
+                  </div>
+                  <div className="mt-5">
+                    <label className="text-xs font-bold" style={{ color: COLORS.sub }}>نمط الخط</label>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {([
+                        ["bold", "غامق", { fontWeight: 900 }],
+                        ["italic", "مائل", { fontStyle: "italic" }],
+                        ["underline", "تسطير", { textDecoration: "underline" }],
+                      ] as [keyof TemplateField, string, React.CSSProperties][]).map(([key, label, previewStyle]) => {
+                        const active = key === "bold" ? selectedField.bold !== false : Boolean(selectedField[key]);
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => updateField(key, !active)}
+                            className="rounded-lg px-2 py-2 text-xs"
+                            style={{
+                              border: `1px solid ${active ? COLORS.brand : COLORS.line}`,
+                              backgroundColor: active ? COLORS.brandSoft : COLORS.paper,
+                              color: active ? COLORS.brand : COLORS.ink,
+                              ...previewStyle,
+                            }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+
+                  <div className="mt-5">
+                    <label className="text-xs font-bold" style={{ color: COLORS.sub }}>لون النص</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={selectedField.color || "#0F172A"}
+                        onChange={(e) => updateField("color", e.target.value)}
+                        className="h-10 w-14 cursor-pointer rounded-lg"
+                        style={inputStyle}
+                      />
+                      <input
+                        type="text"
+                        value={selectedField.color || "#0F172A"}
+                        onChange={(e) => updateField("color", e.target.value)}
+                        className="w-full rounded-xl px-3 py-2.5 text-sm font-bold outline-none"
+                        style={inputStyle}
+                        dir="ltr"
+                      />
                     </div>
                   </div>
                 </>
