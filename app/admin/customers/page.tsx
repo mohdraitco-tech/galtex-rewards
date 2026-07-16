@@ -505,157 +505,118 @@ export default function AdminCustomersPage() {
   }
 
   if (isAuthorized !== true) return null;
+  const star =
+    "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)";
+
+  if (isAuthorized === null) {
+    return (
+      <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif", background: "#F5F2EC", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#586377" }}>
+        جاري التحقق من الصلاحية...
+      </div>
+    );
+  }
 
   return (
-    <main
-      className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100 p-4 md:p-8"
-      dir="rtl"
-    >
-      <div className="max-w-7xl mx-auto space-y-6">
-        <section className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-[2rem] shadow-xl p-7 md:p-9 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div>
-              <p className="text-blue-200 font-semibold">GALTEX Rewards</p>
-              <h1 className="text-3xl md:text-4xl font-bold mt-2">إدارة العملاء والنقاط</h1>
-              <p className="text-blue-100 mt-3">
-                طلبات التسجيل، كلمة المرور، نقل الجهاز، صرف النقاط، وإدارة الحسابات
-              </p>
-            </div>
+    <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif", background: "#F5F2EC", color: "#0E2C5C", minHeight: "100vh" }}>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={loadAll}
-                disabled={isLoading}
-                className="bg-white text-blue-800 hover:bg-blue-50 disabled:bg-gray-200 disabled:text-gray-400 px-6 py-3 rounded-2xl font-bold transition"
-              >
-                {isLoading ? "جاري التحديث..." : "تحديث"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => router.push("/admin/settings")}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-2xl font-bold transition"
-              >
-                إعدادات نسب توزيع النقاط
-              </button>
-
-              <button
-                type="button"
-                onClick={() => router.push("/admin")}
-                className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-6 py-3 rounded-2xl font-bold transition"
-              >
-                لوحة الإدارة
-              </button>
-            </div>
+      {/* ===== HEADER (خفيف على بيج) ===== */}
+      <header style={{ background: "rgba(245,242,236,0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(18,44,92,0.08)", position: "sticky", top: 0, zIndex: 30 }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <img src="/galtex-logo.png" alt="GALTEX" style={{ height: 32, width: "auto", display: "block" }} />
+            <span style={{ width: 1, height: 26, background: "rgba(18,44,92,0.15)" }} />
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: "#C4952E" }}>الإدارة</span>
           </div>
-        </section>
+          <button type="button" onClick={() => router.push("/admin")} style={{ background: "none", border: "none", color: "#16407F", fontFamily: "inherit", fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>‹ لوحة التحكم</button>
+        </div>
+      </header>
 
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard title="إجمالي العملاء" value={stats.total} />
-          <StatCard title="مفعّلين" value={stats.active} />
-          <StatCard title="موقوفين" value={stats.suspended} />
+      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "34px 28px 60px" }}>
+
+        {/* عنوان + أزرار */}
+        <div className="gx-titlerow" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginBottom: 26 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <span style={{ width: 12, height: 12, background: "#C4952E", display: "inline-block", clipPath: star }} />
+              <h1 style={{ fontSize: "clamp(24px,2.6vw,32px)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, color: "#0E2C5C" }}>إدارة العملاء والنقاط</h1>
+            </div>
+            <p style={{ fontSize: 15.5, color: "#586377", margin: 0 }}>طلبات التسجيل، صرف النقاط، وإيقاف وتفعيل الحسابات</p>
+          </div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button type="button" onClick={loadAll} disabled={isLoading} style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.15)", color: "#16407F", fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px 22px", borderRadius: 12, cursor: isLoading ? "not-allowed" : "pointer" }}>
+              {isLoading ? "جاري التحديث..." : "تحديث"}
+            </button>
+            <button type="button" onClick={() => router.push("/admin/settings")} style={{ background: "#C4952E", border: "none", color: "#0E2C5C", fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px 22px", borderRadius: 12, cursor: "pointer" }}>
+              إعدادات نسب توزيع النقاط
+            </button>
+          </div>
+        </div>
+
+        {/* الإحصائيات */}
+        <div className="gx-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 26 }}>
           <StatCard title="إجمالي النقاط" value={stats.totalPoints} dark />
-        </section>
+          <StatCard title="موقوفين" value={stats.suspended} tone="red" />
+          <StatCard title="مفعّلين" value={stats.active} tone="green" />
+          <StatCard title="إجمالي العملاء" value={stats.total} />
+        </div>
 
         {message && (
-          <div
-            className={`rounded-2xl p-4 text-center font-bold border ${
-              messageType === "success"
-                ? "bg-green-50 border-green-200 text-green-700"
-                : "bg-red-50 border-red-200 text-red-700"
-            }`}
-          >
+          <div style={{ borderRadius: 16, padding: 16, textAlign: "center", fontWeight: 700, marginBottom: 22, background: messageType === "success" ? "rgba(31,138,91,0.1)" : "rgba(192,57,43,0.08)", border: messageType === "success" ? "1px solid rgba(31,138,91,0.3)" : "1px solid rgba(192,57,43,0.25)", color: messageType === "success" ? "#1F8A5B" : "#C0392B" }}>
             {message}
           </div>
         )}
 
         {/* ============== طلبات التسجيل المعلقة ============== */}
-        <section className="bg-white rounded-[2rem] shadow-xl p-5 md:p-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">طلبات التسجيل المعلقة</h2>
-            <p className="text-gray-500 mt-2">راجع الطلبات الجديدة واختر نوع العميل قبل الموافقة</p>
-          </div>
+        <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "24px 26px", marginBottom: 20 }}>
+          <h2 style={{ fontSize: 21, fontWeight: 700, margin: "0 0 4px", color: "#0E2C5C" }}>طلبات التسجيل المعلّقة</h2>
+          <p style={{ fontSize: 14.5, color: "#586377", margin: 0 }}>راجع الطلبات الجديدة واختر نوع العميل قبل الموافقة</p>
 
           {isLoading ? (
-            <div className="text-center py-12 text-gray-500 bg-slate-50 rounded-3xl mt-6">
-              جاري تحميل الطلبات...
-            </div>
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#7A8498", background: "rgba(18,44,92,0.03)", borderRadius: 16, marginTop: 18 }}>جاري تحميل الطلبات...</div>
           ) : pendingCustomers.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 bg-slate-50 rounded-3xl mt-6">
-              لا توجد طلبات تسجيل معلقة
-            </div>
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#7A8498", background: "rgba(18,44,92,0.03)", borderRadius: 16, marginTop: 18 }}>لا توجد طلبات تسجيل معلقة</div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-6">
+            <div className="gx-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 22 }}>
               {pendingCustomers.map((customer) => {
                 const isProcessing = processingPendingId === customer.id;
-
                 return (
-                  <div
-                    key={customer.id}
-                    className="border border-slate-200 rounded-3xl p-5 hover:shadow-md transition bg-slate-50"
-                  >
-                    <div className="flex items-start justify-between gap-4">
+                  <div key={customer.id} style={{ border: "1px solid rgba(18,44,92,0.1)", borderRadius: 18, padding: 20, background: "#F5F2EC" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
                       <div>
-                        <p className="text-xl font-bold text-blue-900">
-                          {customer.first_name} {customer.last_name}
-                        </p>
-                        <p className="text-gray-500 mt-1" dir="ltr">
-                          {customer.username}
-                        </p>
+                        <p style={{ fontSize: 19, fontWeight: 700, color: "#0E2C5C", margin: 0 }}>{customer.first_name} {customer.last_name}</p>
+                        <p style={{ color: "#586377", margin: "4px 0 0" }} dir="ltr">{customer.username}</p>
                       </div>
-
-                      <span className="bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-full px-3 py-1 text-sm font-bold">
-                        معلق
-                      </span>
+                      <span style={{ background: "#FBF3DC", color: "#8F6819", border: "1px solid #e8d9a8", borderRadius: 100, padding: "5px 14px", fontSize: 13, fontWeight: 700 }}>معلق</span>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3 mt-5 text-sm">
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 18 }}>
                       <InfoBox label="المدينة" value={customer.city} />
                       <InfoBox label="الدولة" value={customer.country} />
                       <InfoBox label="الجوال" value={customer.phone_international} ltr />
-                      <InfoBox
-                        label="تاريخ الطلب"
-                        value={new Date(customer.created_at).toLocaleDateString("ar-SA")}
-                      />
+                      <InfoBox label="تاريخ الطلب" value={new Date(customer.created_at).toLocaleDateString("ar-SA")} />
                     </div>
-
-                    <div className="mt-5">
-                      <label className="block text-sm font-bold text-gray-700 mb-2">نوع العميل</label>
+                    <div style={{ marginTop: 18 }}>
+                      <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>نوع العميل</label>
                       <select
                         value={customerTypes[customer.id] || ""}
                         onChange={(event) => {
-                          setCustomerTypes((previous) => ({
-                            ...previous,
-                            [customer.id]: event.target.value,
-                          }));
+                          setCustomerTypes((previous) => ({ ...previous, [customer.id]: event.target.value }));
                           setMessage("");
                         }}
                         disabled={isProcessing}
-                        className="w-full border border-gray-300 rounded-2xl px-4 py-3 bg-white outline-none focus:ring-2 focus:ring-blue-600"
+                        className="gx-in"
+                        style={{ width: "100%", fontFamily: "inherit", fontSize: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: "#FFFFFF", color: "#0E2C5C" }}
                       >
                         <option value="">اختر نوع العميل</option>
                         <option value="mechanic">ميكانيكي</option>
                         <option value="seller">مبيعات / تاجر</option>
                       </select>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3 mt-5">
-                      <button
-                        type="button"
-                        onClick={() => approveCustomer(customer.id)}
-                        disabled={isProcessing}
-                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-3 rounded-2xl font-bold"
-                      >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 18 }}>
+                      <button type="button" onClick={() => approveCustomer(customer.id)} disabled={isProcessing} style={{ background: isProcessing ? "#9AA3B5" : "#1F8A5B", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 14.5, padding: "12px", border: "none", borderRadius: 12, cursor: isProcessing ? "not-allowed" : "pointer" }}>
                         {isProcessing ? "جاري التنفيذ..." : "موافقة"}
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() => rejectCustomer(customer.id)}
-                        disabled={isProcessing}
-                        className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-3 rounded-2xl font-bold"
-                      >
+                      <button type="button" onClick={() => rejectCustomer(customer.id)} disabled={isProcessing} style={{ background: isProcessing ? "#9AA3B5" : "#C0392B", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 14.5, padding: "12px", border: "none", borderRadius: 12, cursor: isProcessing ? "not-allowed" : "pointer" }}>
                         رفض
                       </button>
                     </div>
@@ -667,71 +628,35 @@ export default function AdminCustomersPage() {
         </section>
 
         {/* ============== طلبات إعادة تعيين كلمة المرور ============== */}
-        <section className="bg-white rounded-[2rem] shadow-xl p-5 md:p-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">طلبات إعادة تعيين كلمة المرور</h2>
-            <p className="text-gray-500 mt-2">
-              العملاء اللي طلبوا استعادة كلمة المرور من صفحة "نسيت كلمة المرور"
-            </p>
-          </div>
+        <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "24px 26px", marginBottom: 20 }}>
+          <h2 style={{ fontSize: 21, fontWeight: 700, margin: "0 0 4px", color: "#0E2C5C" }}>طلبات إعادة تعيين كلمة المرور</h2>
+          <p style={{ fontSize: 14.5, color: "#586377", margin: 0 }}>العملاء اللي طلبوا استعادة كلمة المرور من صفحة &quot;نسيت كلمة المرور&quot;</p>
 
           {isLoading ? (
-            <div className="text-center py-12 text-gray-500 bg-slate-50 rounded-3xl mt-6">
-              جاري التحميل...
-            </div>
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#7A8498", background: "rgba(18,44,92,0.03)", borderRadius: 16, marginTop: 18 }}>جاري التحميل...</div>
           ) : pendingPasswordResets.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 bg-slate-50 rounded-3xl mt-6">
-              لا توجد طلبات إعادة تعيين معلقة
-            </div>
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#7A8498", background: "rgba(18,44,92,0.03)", borderRadius: 16, marginTop: 18 }}>لا توجد طلبات إعادة تعيين معلقة</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
+            <div className="gx-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginTop: 22 }}>
               {pendingPasswordResets.map((request) => {
                 const isProcessing = processingResetId === request.id;
-                const typeLabel =
-                  request.customer_type === "seller"
-                    ? "مبيعات / تاجر"
-                    : request.customer_type === "mechanic"
-                    ? "ميكانيكي"
-                    : "-";
-
+                const typeLabel = request.customer_type === "seller" ? "مبيعات / تاجر" : request.customer_type === "mechanic" ? "ميكانيكي" : "-";
                 return (
-                  <div key={request.id} className="border border-slate-200 rounded-3xl p-5 bg-slate-50">
-                    <p className="text-lg font-bold text-blue-900">
-                      {request.first_name} {request.last_name}
-                    </p>
-                    <p className="text-gray-500 mt-1" dir="ltr">
-                      {request.username}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-2">
+                  <div key={request.id} style={{ border: "1px solid rgba(18,44,92,0.1)", borderRadius: 18, padding: 20, background: "#F5F2EC" }}>
+                    <p style={{ fontSize: 17, fontWeight: 700, color: "#0E2C5C", margin: 0 }}>{request.first_name} {request.last_name}</p>
+                    <p style={{ color: "#586377", margin: "4px 0 0" }} dir="ltr">{request.username}</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
                       {request.customer_number && (
-                        <span className="bg-white border border-slate-200 text-slate-700 rounded-full px-3 py-1 text-xs font-bold">
-                          رقم العميل: {request.customer_number}
-                        </span>
+                        <span style={{ background: "#FFFFFF", border: "1px solid rgba(18,44,92,0.12)", color: "#586377", borderRadius: 100, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>رقم العميل: {request.customer_number}</span>
                       )}
-                      <span className="bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 text-xs font-bold">
-                        {typeLabel}
-                      </span>
+                      <span style={{ background: "#F5F2EC", color: "#16407F", border: "1px solid #dfe6f2", borderRadius: 100, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>{typeLabel}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                      {new Date(request.created_at).toLocaleString("ar-SA")}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-3 mt-4">
-                      <button
-                        type="button"
-                        onClick={() => approvePasswordReset(request.id)}
-                        disabled={isProcessing}
-                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-3 rounded-2xl font-bold text-sm"
-                      >
+                    <p style={{ fontSize: 12, color: "#7A8498", margin: "10px 0 0" }}>{new Date(request.created_at).toLocaleString("ar-SA")}</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+                      <button type="button" onClick={() => approvePasswordReset(request.id)} disabled={isProcessing} style={{ background: isProcessing ? "#9AA3B5" : "#1F8A5B", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px", border: "none", borderRadius: 12, cursor: isProcessing ? "not-allowed" : "pointer" }}>
                         {isProcessing ? "جاري..." : "موافقة"}
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() => rejectPasswordReset(request.id)}
-                        disabled={isProcessing}
-                        className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-3 rounded-2xl font-bold text-sm"
-                      >
+                      <button type="button" onClick={() => rejectPasswordReset(request.id)} disabled={isProcessing} style={{ background: isProcessing ? "#9AA3B5" : "#C0392B", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px", border: "none", borderRadius: 12, cursor: isProcessing ? "not-allowed" : "pointer" }}>
                         رفض
                       </button>
                     </div>
@@ -743,71 +668,35 @@ export default function AdminCustomersPage() {
         </section>
 
         {/* ============== طلبات نقل الجهاز ============== */}
-        <section className="bg-white rounded-[2rem] shadow-xl p-5 md:p-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">طلبات نقل الجهاز</h2>
-            <p className="text-gray-500 mt-2">
-              العملاء اللي حاولوا الدخول من جهاز جديد غير الجهاز المسجل عليه حسابهم
-            </p>
-          </div>
+        <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "24px 26px", marginBottom: 20 }}>
+          <h2 style={{ fontSize: 21, fontWeight: 700, margin: "0 0 4px", color: "#0E2C5C" }}>طلبات نقل الجهاز</h2>
+          <p style={{ fontSize: 14.5, color: "#586377", margin: 0 }}>العملاء اللي حاولوا الدخول من جهاز جديد غير الجهاز المسجل عليه حسابهم</p>
 
           {isLoading ? (
-            <div className="text-center py-12 text-gray-500 bg-slate-50 rounded-3xl mt-6">
-              جاري التحميل...
-            </div>
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#7A8498", background: "rgba(18,44,92,0.03)", borderRadius: 16, marginTop: 18 }}>جاري التحميل...</div>
           ) : pendingDeviceTransfers.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 bg-slate-50 rounded-3xl mt-6">
-              لا توجد طلبات نقل جهاز معلقة
-            </div>
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#7A8498", background: "rgba(18,44,92,0.03)", borderRadius: 16, marginTop: 18 }}>لا توجد طلبات نقل جهاز معلقة</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
+            <div className="gx-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginTop: 22 }}>
               {pendingDeviceTransfers.map((request) => {
                 const isProcessing = processingTransferId === request.id;
-                const typeLabel =
-                  request.customer_type === "seller"
-                    ? "مبيعات / تاجر"
-                    : request.customer_type === "mechanic"
-                    ? "ميكانيكي"
-                    : "-";
-
+                const typeLabel = request.customer_type === "seller" ? "مبيعات / تاجر" : request.customer_type === "mechanic" ? "ميكانيكي" : "-";
                 return (
-                  <div key={request.id} className="border border-slate-200 rounded-3xl p-5 bg-slate-50">
-                    <p className="text-lg font-bold text-blue-900">
-                      {request.first_name} {request.last_name}
-                    </p>
-                    <p className="text-gray-500 mt-1" dir="ltr">
-                      {request.username}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-2">
+                  <div key={request.id} style={{ border: "1px solid rgba(18,44,92,0.1)", borderRadius: 18, padding: 20, background: "#F5F2EC" }}>
+                    <p style={{ fontSize: 17, fontWeight: 700, color: "#0E2C5C", margin: 0 }}>{request.first_name} {request.last_name}</p>
+                    <p style={{ color: "#586377", margin: "4px 0 0" }} dir="ltr">{request.username}</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
                       {request.customer_number && (
-                        <span className="bg-white border border-slate-200 text-slate-700 rounded-full px-3 py-1 text-xs font-bold">
-                          رقم العميل: {request.customer_number}
-                        </span>
+                        <span style={{ background: "#FFFFFF", border: "1px solid rgba(18,44,92,0.12)", color: "#586377", borderRadius: 100, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>رقم العميل: {request.customer_number}</span>
                       )}
-                      <span className="bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 text-xs font-bold">
-                        {typeLabel}
-                      </span>
+                      <span style={{ background: "#F5F2EC", color: "#16407F", border: "1px solid #dfe6f2", borderRadius: 100, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>{typeLabel}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                      {new Date(request.created_at).toLocaleString("ar-SA")}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-3 mt-4">
-                      <button
-                        type="button"
-                        onClick={() => approveDeviceTransfer(request.id)}
-                        disabled={isProcessing}
-                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-3 rounded-2xl font-bold text-sm"
-                      >
+                    <p style={{ fontSize: 12, color: "#7A8498", margin: "10px 0 0" }}>{new Date(request.created_at).toLocaleString("ar-SA")}</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+                      <button type="button" onClick={() => approveDeviceTransfer(request.id)} disabled={isProcessing} style={{ background: isProcessing ? "#9AA3B5" : "#1F8A5B", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px", border: "none", borderRadius: 12, cursor: isProcessing ? "not-allowed" : "pointer" }}>
                         {isProcessing ? "جاري..." : "موافقة"}
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() => rejectDeviceTransfer(request.id)}
-                        disabled={isProcessing}
-                        className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-3 rounded-2xl font-bold text-sm"
-                      >
+                      <button type="button" onClick={() => rejectDeviceTransfer(request.id)} disabled={isProcessing} style={{ background: isProcessing ? "#9AA3B5" : "#C0392B", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px", border: "none", borderRadius: 12, cursor: isProcessing ? "not-allowed" : "pointer" }}>
                         رفض
                       </button>
                     </div>
@@ -818,32 +707,19 @@ export default function AdminCustomersPage() {
           )}
         </section>
 
-        {/* ============== جدول العملاء + صرف النقاط + الإيقاف/التفعيل ============== */}
-        <section className="bg-white rounded-[2rem] shadow-xl p-6 md:p-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">جميع العملاء</h2>
-            <p className="text-gray-500 mt-2">عرض العملاء، صرف النقاط، وإدارة حالة الحساب</p>
-          </div>
+        {/* ============== جدول جميع العملاء ============== */}
+        <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "24px 26px", marginBottom: 20 }}>
+          <h2 style={{ fontSize: 21, fontWeight: 700, margin: "0 0 4px", color: "#0E2C5C" }}>جميع العملاء</h2>
+          <p style={{ fontSize: 14.5, color: "#586377", margin: 0 }}>عرض العملاء، صرف النقاط، وإدارة حالة الحساب</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">البحث</label>
-              <input
-                type="text"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="ابحث بالاسم أو اسم المستخدم أو رقم العميل"
-                className="w-full border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
-              />
-            </div>
-
+          <div className="gx-search" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginTop: 22 }}>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">الحالة</label>
-              <select
-                value={filterStatus}
-                onChange={(event) => setFilterStatus(event.target.value as FilterStatus)}
-                className="w-full border border-gray-300 rounded-2xl px-4 py-3 bg-white outline-none focus:ring-2 focus:ring-blue-600"
-              >
+              <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>البحث</label>
+              <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث بالاسم أو اسم المستخدم أو رقم العميل" className="gx-in" style={{ width: "100%", fontFamily: "inherit", fontSize: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: "#FFFFFF", color: "#0E2C5C" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>الحالة</label>
+              <select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value as FilterStatus)} className="gx-in" style={{ width: "100%", fontFamily: "inherit", fontSize: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: "#FFFFFF", color: "#0E2C5C" }}>
                 <option value="all">الكل</option>
                 <option value="active">مفعّل</option>
                 <option value="pending">معلق</option>
@@ -853,104 +729,49 @@ export default function AdminCustomersPage() {
           </div>
 
           {isLoading ? (
-            <div className="text-center py-16 text-gray-500">جاري تحميل العملاء...</div>
+            <div style={{ textAlign: "center", padding: "64px 0", color: "#7A8498" }}>جاري تحميل العملاء...</div>
           ) : filteredCustomers.length === 0 ? (
-            <div className="mt-7 bg-slate-50 rounded-3xl p-12 text-center text-gray-500">
-              لا توجد نتائج مطابقة
-            </div>
+            <div style={{ marginTop: 26, background: "rgba(18,44,92,0.03)", borderRadius: 18, padding: 48, textAlign: "center", color: "#7A8498" }}>لا توجد نتائج مطابقة</div>
           ) : (
-            <div className="overflow-x-auto mt-7">
-              <table className="w-full text-right border-separate border-spacing-y-3">
+            <div className="gx-tablewrap" style={{ overflowX: "auto", marginTop: 26 }}>
+              <table style={{ width: "100%", textAlign: "right", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr className="text-blue-900 text-sm">
-                    <th className="px-4">رقم العميل</th>
-                    <th className="px-4">العميل</th>
-                    <th className="px-4">اسم المستخدم</th>
-                    <th className="px-4">النوع</th>
-                    <th className="px-4">الرصيد</th>
-                    <th className="px-4">الحالة</th>
-                    <th className="px-4">إجراءات</th>
+                  <tr style={{ color: "#586377", fontSize: 13, background: "rgba(18,44,92,0.04)" }}>
+                    <th style={{ padding: "0 14px", fontWeight: 600, textAlign: "right" }}>رقم العميل</th>
+                    <th style={{ padding: "0 14px", fontWeight: 600, textAlign: "right" }}>العميل</th>
+                    <th style={{ padding: "0 14px", fontWeight: 600, textAlign: "right" }}>اسم المستخدم</th>
+                    <th style={{ padding: "0 14px", fontWeight: 600, textAlign: "center" }}>النوع</th>
+                    <th style={{ padding: "0 14px", fontWeight: 600, textAlign: "center" }}>الرصيد</th>
+                    <th style={{ padding: "0 14px", fontWeight: 600, textAlign: "center" }}>الحالة</th>
+                    <th style={{ padding: "0 14px", fontWeight: 600, textAlign: "center" }}>إجراءات</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredCustomers.map((customer) => {
-                    const typeLabel =
-                      customer.customer_type === "seller"
-                        ? "مبيعات / تاجر"
-                        : customer.customer_type === "mechanic"
-                        ? "ميكانيكي"
-                        : "-";
-
+                    const typeLabel = customer.customer_type === "seller" ? "مبيعات / تاجر" : customer.customer_type === "mechanic" ? "ميكانيكي" : "-";
                     const isProcessing = processingId === customer.id;
-
                     return (
-                      <tr key={customer.id} className="bg-slate-50 hover:bg-blue-50 transition">
-                        <td className="p-4 rounded-r-2xl font-bold text-blue-900">
-                          {customer.customer_number || "-"}
+                      <tr key={customer.id} className="gx-row" style={{ background: "#FFFFFF" }}>
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", fontWeight: 700, color: "#0E2C5C", fontFamily: "'Space Grotesk',sans-serif" }}>{customer.customer_number || "-"}</td>
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", fontWeight: 700, color: "#0E2C5C" }}>{customer.first_name} {customer.last_name}</td>
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", color: "#586377" }} dir="ltr">{customer.username}</td>
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", textAlign: "center" }}>
+                          <span style={{ background: "rgba(22,64,127,0.06)", color: "#16407F", border: "1px solid #dfe6f2", padding: "4px 12px", borderRadius: 100, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{typeLabel}</span>
                         </td>
-
-                        <td className="p-4 font-bold text-gray-800">
-                          {customer.first_name} {customer.last_name}
-                        </td>
-
-                        <td className="p-4 text-gray-700" dir="ltr">
-                          {customer.username}
-                        </td>
-
-                        <td className="p-4">
-                          <span className="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-sm font-bold">
-                            {typeLabel}
-                          </span>
-                        </td>
-
-                        <td className="p-4 font-bold text-blue-900">{customer.current_points}</td>
-
-                        <td className="p-4">
-                          <StatusBadge status={customer.status} />
-                        </td>
-
-                        <td className="p-4 rounded-l-2xl">
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openRedeemModal(customer)}
-                              disabled={customer.status !== "active" || customer.current_points <= 0}
-                              className="rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 font-bold text-sm"
-                            >
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", textAlign: "center", fontWeight: 700, color: "#0E2C5C", fontFamily: "'Space Grotesk',sans-serif", fontSize: 16 }}>{customer.current_points}</td>
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", textAlign: "center" }}><StatusBadge status={customer.status} /></td>
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "nowrap" }}>
+                            <button type="button" onClick={() => openRedeemModal(customer)} disabled={customer.status !== "active" || customer.current_points <= 0} style={{ background: (customer.status !== "active" || customer.current_points <= 0) ? "rgba(18,44,92,0.05)" : "rgba(31,138,91,0.12)", color: (customer.status !== "active" || customer.current_points <= 0) ? "#9AA3B5" : "#1F8A5B", border: "none", fontSize: 12, fontWeight: 600, padding: "6px 11px", borderRadius: 8, fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0, cursor: (customer.status !== "active" || customer.current_points <= 0) ? "not-allowed" : "pointer" }}>
                               صرف نقاط
                             </button>
-
-                            <button
-                              type="button"
-                              onClick={() => toggleSuspend(customer)}
-                              disabled={isProcessing || customer.status === "pending"}
-                              className={`rounded-xl px-4 py-2 font-bold text-sm text-white disabled:bg-gray-400 ${
-                                customer.status === "active"
-                                  ? "bg-red-600 hover:bg-red-700"
-                                  : "bg-blue-600 hover:bg-blue-700"
-                              }`}
-                            >
-                              {isProcessing
-                                ? "جاري..."
-                                : customer.status === "active"
-                                ? "إيقاف"
-                                : "تفعيل"}
+                            <button type="button" onClick={() => toggleSuspend(customer)} disabled={isProcessing || customer.status === "pending"} style={{ background: (isProcessing || customer.status === "pending") ? "rgba(18,44,92,0.05)" : customer.status === "active" ? "rgba(192,57,43,0.1)" : "rgba(22,64,127,0.1)", color: (isProcessing || customer.status === "pending") ? "#9AA3B5" : customer.status === "active" ? "#C0392B" : "#16407F", border: "none", fontSize: 12, fontWeight: 600, padding: "6px 11px", borderRadius: 8, fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0, cursor: (isProcessing || customer.status === "pending") ? "not-allowed" : "pointer" }}>
+                              {isProcessing ? "جاري..." : customer.status === "active" ? "إيقاف" : "تفعيل"}
                             </button>
-
-                            <button
-                              type="button"
-                              onClick={() => openHistory(customer)}
-                              className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 font-bold text-sm shadow-sm"
-                            >
+                            <button type="button" onClick={() => openHistory(customer)} style={{ background: "rgba(196,149,46,0.16)", color: "#8F6819", border: "none", fontSize: 12, fontWeight: 600, padding: "6px 11px", borderRadius: 8, fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer" }}>
                               السجل
                             </button>
-
-                            <button
-                              type="button"
-                              onClick={() => openStatement(customer)}
-                              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 font-bold text-sm shadow-sm"
-                            >
+                            <button type="button" onClick={() => openStatement(customer)} style={{ background: "rgba(22,64,127,0.1)", color: "#16407F", border: "none", fontSize: 12, fontWeight: 600, padding: "6px 11px", borderRadius: 8, fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer" }}>
                               كشف حساب
                             </button>
                           </div>
@@ -963,94 +784,48 @@ export default function AdminCustomersPage() {
             </div>
           )}
         </section>
-      </div>
+      </main>
 
+      {/* ============== نافذة صرف النقاط ============== */}
       {redeemModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
-            <h2 className="text-2xl font-black text-blue-950">صرف نقاط</h2>
-
-            <p className="mt-2 text-gray-500">
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(14,44,92,0.55)", padding: 16 }}>
+          <div style={{ width: "100%", maxWidth: 520, borderRadius: 24, background: "#FFFDF8", padding: 26, boxShadow: "0 30px 70px -30px rgba(0,0,0,0.5)" }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0E2C5C", margin: 0 }}>صرف نقاط</h2>
+            <p style={{ marginTop: 8, color: "#586377" }}>
               العميل: {redeemModal.customer.first_name} {redeemModal.customer.last_name}
-              {" — "}الرصيد الحالي: <span className="font-bold text-blue-900">{redeemModal.customer.current_points}</span>
+              {" — "}الرصيد الحالي: <span style={{ fontWeight: 700, color: "#16407F" }}>{redeemModal.customer.current_points}</span>
             </p>
-
-            <div className="mt-6 space-y-4">
+            <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">نوع العملية</label>
-                <select
-                  value={redeemModal.type}
-                  onChange={(event) =>
-                    setRedeemModal((prev) =>
-                      prev ? { ...prev, type: event.target.value as RedeemType } : prev
-                    )
-                  }
-                  className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
-                >
+                <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>نوع العملية</label>
+                <select value={redeemModal.type} onChange={(event) => setRedeemModal((prev) => prev ? { ...prev, type: event.target.value as RedeemType } : prev)} className="gx-in" style={{ width: "100%", borderRadius: 12, border: "1px solid rgba(18,44,92,0.18)", background: "#FFFFFF", padding: "12px 14px", fontFamily: "inherit", fontSize: 15, color: "#0E2C5C" }}>
                   <option value="cash">صرف نقدي</option>
                   <option value="gift">صرف كهدية</option>
                   <option value="deduct">خصم نقاط</option>
                   <option value="reset">تصفير الرصيد بالكامل</option>
                 </select>
               </div>
-
               {redeemModal.type !== "reset" && (
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">عدد النقاط</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max={redeemModal.customer.current_points}
-                    value={redeemModal.points}
-                    onChange={(event) =>
-                      setRedeemModal((prev) =>
-                        prev ? { ...prev, points: event.target.value } : prev
-                      )
-                    }
-                    dir="ltr"
-                    className="w-full rounded-2xl border border-gray-300 bg-yellow-50 px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-600"
-                  />
+                  <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>عدد النقاط</label>
+                  <input type="number" min="1" max={redeemModal.customer.current_points} value={redeemModal.points} onChange={(event) => setRedeemModal((prev) => prev ? { ...prev, points: event.target.value } : prev)} dir="ltr" className="gx-in" style={{ width: "100%", borderRadius: 12, border: "1px solid rgba(18,44,92,0.18)", background: "#FBF3DC", padding: "12px 14px", fontFamily: "inherit", fontSize: 15, fontWeight: 700, color: "#0E2C5C" }} />
                 </div>
               )}
-
               {redeemModal.type === "reset" && (
-                <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-sm font-semibold">
+                <div style={{ background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.25)", color: "#C0392B", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 600 }}>
                   سيتم تصفير رصيد العميل بالكامل ({redeemModal.customer.current_points} نقطة). هذا الإجراء لا يمكن التراجع عنه.
                 </div>
               )}
-
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">ملاحظة (اختياري)</label>
-                <textarea
-                  value={redeemModal.note}
-                  onChange={(event) =>
-                    setRedeemModal((prev) =>
-                      prev ? { ...prev, note: event.target.value } : prev
-                    )
-                  }
-                  rows={2}
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
-                  placeholder="مثال: تم الصرف نقداً في الفرع"
-                />
+                <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>ملاحظة (اختياري)</label>
+                <textarea value={redeemModal.note} onChange={(event) => setRedeemModal((prev) => prev ? { ...prev, note: event.target.value } : prev)} rows={2} className="gx-in" style={{ width: "100%", borderRadius: 12, border: "1px solid rgba(18,44,92,0.18)", background: "#FFFFFF", padding: "12px 14px", fontFamily: "inherit", fontSize: 15, color: "#0E2C5C" }} placeholder="مثال: تم الصرف نقداً في الفرع" />
               </div>
             </div>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={submitRedeem}
-                disabled={isSubmittingRedeem}
-                className="flex-1 rounded-2xl bg-green-600 hover:bg-green-700 disabled:bg-gray-500 px-6 py-4 font-bold text-white shadow-lg"
-              >
+            <div style={{ marginTop: 22, display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <button type="button" onClick={submitRedeem} disabled={isSubmittingRedeem} style={{ flex: 1, borderRadius: 12, background: isSubmittingRedeem ? "#9AA3B5" : "#1F8A5B", padding: "14px", fontFamily: "inherit", fontWeight: 700, color: "#fff", border: "none", cursor: isSubmittingRedeem ? "not-allowed" : "pointer" }}>
                 {isSubmittingRedeem ? "جاري التنفيذ..." : "تأكيد العملية"}
               </button>
-
-              <button
-                type="button"
-                onClick={() => setRedeemModal(null)}
-                disabled={isSubmittingRedeem}
-                className="rounded-2xl bg-gray-400 hover:bg-gray-500 disabled:bg-gray-300 px-6 py-4 font-bold text-white shadow-lg"
-              >
+              <button type="button" onClick={() => setRedeemModal(null)} disabled={isSubmittingRedeem} style={{ borderRadius: 12, background: "#E4E1DA", padding: "14px 26px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: isSubmittingRedeem ? "not-allowed" : "pointer" }}>
                 إلغاء
               </button>
             </div>
@@ -1058,67 +833,37 @@ export default function AdminCustomersPage() {
         </div>
       )}
 
+      {/* ============== نافذة سجل عمليات الصرف ============== */}
       {historyCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-4">
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(14,44,92,0.55)", padding: 16 }}>
+          <div style={{ width: "100%", maxWidth: 640, borderRadius: 24, background: "#FFFDF8", padding: 26, boxShadow: "0 30px 70px -30px rgba(0,0,0,0.5)", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
               <div>
-                <h2 className="text-2xl font-black text-blue-950">سجل عمليات الصرف</h2>
-                <p className="mt-2 text-gray-500">
-                  {historyCustomer.first_name} {historyCustomer.last_name}
-                </p>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0E2C5C", margin: 0 }}>سجل عمليات الصرف</h2>
+                <p style={{ marginTop: 8, color: "#586377" }}>{historyCustomer.first_name} {historyCustomer.last_name}</p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setHistoryCustomer(null)}
-                className="rounded-xl bg-slate-100 hover:bg-slate-200 px-4 py-2 font-bold text-slate-700"
-              >
-                إغلاق
-              </button>
+              <button type="button" onClick={() => setHistoryCustomer(null)} style={{ borderRadius: 10, background: "#E4E1DA", padding: "8px 16px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: "pointer" }}>إغلاق</button>
             </div>
-
             {isLoadingHistory ? (
-              <div className="text-center py-12 text-gray-500">جاري التحميل...</div>
+              <div style={{ textAlign: "center", padding: "48px 0", color: "#7A8498" }}>جاري التحميل...</div>
             ) : historyItems.length === 0 ? (
-              <div className="mt-6 bg-slate-50 rounded-2xl p-8 text-center text-gray-500">
-                لا توجد عمليات صرف سابقة
-              </div>
+              <div style={{ marginTop: 20, background: "rgba(18,44,92,0.03)", borderRadius: 16, padding: 40, textAlign: "center", color: "#7A8498" }}>لا توجد عمليات صرف</div>
             ) : (
-              <div className="mt-6 space-y-3">
+              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                 {historyItems.map((item) => (
-                  <div key={item.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50">
-                    <div className="flex items-center justify-between">
+                  <div key={item.id} style={{ border: "1px solid rgba(18,44,92,0.1)", borderRadius: 14, padding: 16, background: "#F5F2EC" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                       <RedemptionTypeBadge type={item.redemption_type} />
-                      <span className="text-sm text-gray-500">
-                        {new Date(item.created_at).toLocaleString("ar-SA")}
-                      </span>
+                      <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: "#C0392B" }}>- {item.points}</span>
                     </div>
-
-                    <div className="grid grid-cols-3 gap-3 mt-3 text-sm">
-                      <div>
-                        <p className="text-gray-400 text-xs">قبل</p>
-                        <p className="font-bold">{item.points_before}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 text-xs">المصروف</p>
-                        <p className="font-bold text-red-600">-{item.points}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 text-xs">بعد</p>
-                        <p className="font-bold">{item.points_after}</p>
-                      </div>
+                    <div style={{ marginTop: 8, fontSize: 13, color: "#586377" }}>
+                      الرصيد: {item.points_before} ← {item.points_after}
+                      {item.admin_name ? ` — بواسطة: ${item.admin_name}` : ""}
                     </div>
-
                     {item.note && (
-                      <p className="mt-3 text-sm text-gray-600 bg-white rounded-xl p-2 border border-slate-100">
-                        {item.note}
-                      </p>
+                      <p style={{ marginTop: 10, fontSize: 13, color: "#586377", background: "#FFFFFF", borderRadius: 10, padding: 8, border: "1px solid rgba(18,44,92,0.08)" }}>{item.note}</p>
                     )}
-
-                    {item.admin_name && (
-                      <p className="mt-2 text-xs text-gray-400">بواسطة: {item.admin_name}</p>
-                    )}
+                    <p style={{ marginTop: 8, fontSize: 12, color: "#7A8498" }}>{new Date(item.created_at).toLocaleString("ar-SA")}</p>
                   </div>
                 ))}
               </div>
@@ -1127,101 +872,40 @@ export default function AdminCustomersPage() {
         </div>
       )}
 
+      {/* ============== نافذة كشف حساب النقاط ============== */}
       {statementCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-4">
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(14,44,92,0.55)", padding: 16 }}>
+          <div style={{ width: "100%", maxWidth: 640, borderRadius: 24, background: "#FFFDF8", padding: 26, boxShadow: "0 30px 70px -30px rgba(0,0,0,0.5)", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
               <div>
-                <h2 className="text-2xl font-black text-blue-950">كشف حساب النقاط</h2>
-                <p className="mt-2 text-gray-500">
-                  {statementCustomer.first_name} {statementCustomer.last_name}
-                  {" — "}
-                  <span dir="ltr">{statementCustomer.username}</span>
-                </p>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0E2C5C", margin: 0 }}>كشف حساب النقاط</h2>
+                <p style={{ marginTop: 8, color: "#586377" }}>{statementCustomer.first_name} {statementCustomer.last_name}</p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setStatementCustomer(null)}
-                className="rounded-xl bg-slate-100 hover:bg-slate-200 px-4 py-2 font-bold text-slate-700"
-              >
-                إغلاق
-              </button>
+              <button type="button" onClick={() => setStatementCustomer(null)} style={{ borderRadius: 10, background: "#E4E1DA", padding: "8px 16px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: "pointer" }}>إغلاق</button>
             </div>
-
-            {!isLoadingStatement && statementItems.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 mt-5">
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center">
-                  <p className="text-blue-700 text-sm font-semibold">إجمالي المفرج عنه</p>
-                  <p className="text-2xl font-bold text-blue-900 mt-1">
-                    {statementItems
-                      .filter((item) => item.status === "released")
-                      .reduce((sum, item) => sum + Number(item.points || 0), 0)}
-                  </p>
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 text-center">
-                  <p className="text-yellow-700 text-sm font-semibold">إجمالي الموقف</p>
-                  <p className="text-2xl font-bold text-yellow-800 mt-1">
-                    {statementItems
-                      .filter((item) => item.status === "pending")
-                      .reduce((sum, item) => sum + Number(item.points || 0), 0)}
-                  </p>
-                </div>
-              </div>
-            )}
-
             {isLoadingStatement ? (
-              <div className="text-center py-12 text-gray-500">جاري التحميل...</div>
+              <div style={{ textAlign: "center", padding: "48px 0", color: "#7A8498" }}>جاري التحميل...</div>
             ) : statementItems.length === 0 ? (
-              <div className="mt-6 bg-slate-50 rounded-2xl p-8 text-center text-gray-500">
-                لا توجد عمليات مسح لهذا العميل حتى الآن
-              </div>
+              <div style={{ marginTop: 20, background: "rgba(18,44,92,0.03)", borderRadius: 16, padding: 40, textAlign: "center", color: "#7A8498" }}>لا توجد عمليات نقاط</div>
             ) : (
-              <div className="mt-6 space-y-3">
+              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                 {statementItems.map((item) => {
                   const isReleased = item.status === "released";
-
                   return (
-                    <div
-                      key={`${item.status}-${item.id}`}
-                      className="border border-slate-200 rounded-2xl p-4 bg-slate-50 flex items-center gap-4"
-                    >
-                      {item.product_image_url ? (
-                        <img
-                          src={item.product_image_url}
-                          alt={item.product_name_ar || item.product_number}
-                          className="w-14 h-14 rounded-xl object-contain bg-white border border-slate-200 flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-xl bg-slate-200 flex items-center justify-center text-xs text-gray-500 flex-shrink-0">
-                          صورة
-                        </div>
+                    <div key={item.id} style={{ border: "1px solid rgba(18,44,92,0.1)", borderRadius: 14, padding: 14, background: "#F5F2EC", display: "flex", alignItems: "center", gap: 14 }}>
+                      {item.product_image_url && (
+                        <img src={item.product_image_url} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "contain", background: "#FFFFFF", border: "1px solid rgba(18,44,92,0.1)", flexShrink: 0 }} />
                       )}
-
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-900 truncate">
-                          {item.product_name_ar || "منتج"}
-                        </p>
-                        <p className="text-sm text-gray-500 truncate" dir="ltr">
-                          {item.product_name_en || item.product_number}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(item.created_at).toLocaleString("ar-SA")}
-                        </p>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 700, color: "#0E2C5C", margin: 0, fontSize: 15 }}>{item.product_name_ar || item.product_name_en || item.product_number}</p>
+                        <p style={{ fontSize: 12.5, color: "#7A8498", margin: "4px 0 0" }}>{new Date(item.created_at).toLocaleString("ar-SA")}</p>
                       </div>
-
-                      <div className="text-left flex-shrink-0">
-                        <p className="text-xl font-bold text-blue-900">{item.points}</p>
-                        <span
-                          className={`text-xs font-bold px-2 py-1 rounded-full ${
-                            isReleased
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
-                        >
-                          {item.status_label}
-                        </span>
+                      <div style={{ textAlign: "left", flexShrink: 0 }}>
+                        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: isReleased ? "#16407F" : "#8F6819" }}>+ {item.points}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: isReleased ? "#16407F" : "#C4952E" }} />
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: isReleased ? "#16407F" : "#8F6819" }}>{item.status_label}</span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1231,72 +915,64 @@ export default function AdminCustomersPage() {
           </div>
         </div>
       )}
-    </main>
+
+      <style>{`
+        .gx-in:focus { outline: none; border-color: #16407F; box-shadow: 0 0 0 3px rgba(22,64,127,0.12); }
+        .gx-row:hover { background: rgba(18,44,92,0.02) !important; }
+        .gx-in::placeholder { color: #9AA3B5; }
+        @media (max-width:900px){
+          .gx-kpis { grid-template-columns:1fr 1fr !important; }
+          .gx-2col, .gx-3col, .gx-search { grid-template-columns:1fr !important; }
+          .gx-titlerow { flex-direction:column; }
+        }
+      `}</style>
+    </div>
   );
 }
 
-function StatCard({ title, value, dark = false }: { title: string; value: number; dark?: boolean }) {
+function StatCard({ title, value, dark = false, tone }: { title: string; value: number; dark?: boolean; tone?: "green" | "red" }) {
+  const valueColor = dark ? "#F5F2EC" : tone === "green" ? "#1F8A5B" : tone === "red" ? "#C0392B" : "#0E2C5C";
   return (
-    <div
-      className={`rounded-2xl p-3 md:p-5 shadow-sm ${
-        dark ? "bg-gradient-to-r from-blue-800 to-blue-950 text-white" : "bg-white text-blue-900"
-      }`}
-    >
-      <p className={`text-xs md:text-sm ${dark ? "text-blue-100" : "text-gray-500"}`}>{title}</p>
-      <p className="text-2xl md:text-4xl font-bold mt-1 md:mt-3">{value}</p>
+    <div style={{ borderRadius: 18, padding: "20px 22px", background: dark ? "linear-gradient(140deg,#16407F,#0E2C5C)" : "#FFFDF8", border: dark ? "none" : "1px solid rgba(18,44,92,0.1)" }}>
+      <div style={{ fontSize: 13, color: dark ? "#C6D2EA" : "#7A8498", marginBottom: 8 }}>{title}</div>
+      <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: valueColor }}>{value}</div>
     </div>
   );
 }
 
 function InfoBox({ label, value, ltr = false }: { label: string; value: string; ltr?: boolean }) {
   return (
-    <div className="bg-white rounded-2xl p-3 border border-slate-100">
-      <p className="text-gray-400 text-xs">{label}</p>
-      <p className="font-bold text-gray-800 mt-1" dir={ltr ? "ltr" : "rtl"}>
-        {value || "-"}
-      </p>
+    <div style={{ background: "#FFFFFF", border: "1px solid rgba(18,44,92,0.08)", borderRadius: 12, padding: "10px 14px" }}>
+      <div style={{ fontSize: 12, color: "#7A8498", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14.5, fontWeight: 600, color: "#0E2C5C", ...(ltr ? { direction: "ltr", textAlign: "right" } : {}) }}>{value}</div>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const className =
-    status === "active"
-      ? "bg-green-50 text-green-700 border-green-100"
-      : status === "pending"
-      ? "bg-yellow-50 text-yellow-700 border-yellow-100"
-      : status === "suspended"
-      ? "bg-red-50 text-red-700 border-red-100"
-      : "bg-slate-50 text-slate-700 border-slate-100";
-
-  const label =
-    status === "active"
-      ? "مفعل"
-      : status === "pending"
-      ? "معلق"
-      : status === "suspended"
-      ? "موقوف"
-      : status;
-
+  const map: Record<string, { label: string; bg: string; color: string; border: string }> = {
+    active: { label: "مفعّل", bg: "rgba(31,138,91,0.1)", color: "#1F8A5B", border: "rgba(31,138,91,0.3)" },
+    pending: { label: "معلق", bg: "#FBF3DC", color: "#8F6819", border: "#e8d9a8" },
+    suspended: { label: "موقوف", bg: "rgba(192,57,43,0.08)", color: "#C0392B", border: "rgba(192,57,43,0.25)" },
+  };
+  const item = map[status] || { label: status, bg: "rgba(18,44,92,0.05)", color: "#586377", border: "rgba(18,44,92,0.12)" };
   return (
-    <span className={`border px-3 py-1 rounded-full text-sm font-bold ${className}`}>
-      {label}
+    <span style={{ background: item.bg, color: item.color, border: `1px solid ${item.border}`, padding: "5px 14px", borderRadius: 100, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
+      {item.label}
     </span>
   );
 }
 
 function RedemptionTypeBadge({ type }: { type: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    cash: { label: "صرف نقدي", className: "bg-green-50 text-green-700 border-green-100" },
-    gift: { label: "صرف كهدية", className: "bg-purple-50 text-purple-700 border-purple-100" },
-    deduct: { label: "خصم نقاط", className: "bg-orange-50 text-orange-700 border-orange-100" },
-    reset: { label: "تصفير الرصيد", className: "bg-red-50 text-red-700 border-red-100" },
+  const map: Record<string, { label: string; bg: string; color: string; border: string }> = {
+    cash: { label: "صرف نقدي", bg: "rgba(31,138,91,0.1)", color: "#1F8A5B", border: "rgba(31,138,91,0.3)" },
+    gift: { label: "صرف كهدية", bg: "rgba(122,64,158,0.1)", color: "#7A409E", border: "rgba(122,64,158,0.3)" },
+    deduct: { label: "خصم نقاط", bg: "rgba(200,90,40,0.1)", color: "#C85A28", border: "rgba(200,90,40,0.3)" },
+    reset: { label: "تصفير الرصيد", bg: "rgba(192,57,43,0.08)", color: "#C0392B", border: "rgba(192,57,43,0.25)" },
   };
-
-  const item = map[type] || { label: type, className: "bg-slate-50 text-slate-700 border-slate-100" };
-
+  const item = map[type] || { label: type, bg: "rgba(18,44,92,0.05)", color: "#586377", border: "rgba(18,44,92,0.12)" };
   return (
-    <span className={`border px-3 py-1 rounded-full text-sm font-bold ${item.className}`}>
+    <span style={{ background: item.bg, color: item.color, border: `1px solid ${item.border}`, padding: "5px 14px", borderRadius: 100, fontSize: 13.5, fontWeight: 700 }}>
       {item.label}
     </span>
   );

@@ -1,9 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+
+/* ============================================================
+   GALTEX Rewards — لوحة تحكم الإدارة (/admin)
+   الشكل: تصميم Claude Design الجديد (Admin) — كحلي/ذهبي/بيج
+   المنطق: نفس منطق النظام (الصلاحيات + الإحصائيات + الأقسام) — لم يُمَس
+   ============================================================ */
+
+const C = {
+  navy: "#0E2C5C",
+  blue: "#16407F",
+  gold: "#C4952E",
+  goldDark: "#8F6819",
+  beige: "#F5F2EC",
+  cream: "#FFFDF8",
+  slate: "#586377",
+  ink: "#7A8498",
+};
 
 type PendingCustomer = { id: string };
 
@@ -108,40 +124,35 @@ export default function AdminPage() {
         description: "طلبات التسجيل، صرف النقاط، إيقاف وتفعيل الحسابات",
         href: "/admin/customers",
         badge: stats.pendingRequests > 0 ? `${stats.pendingRequests} طلب معلق` : undefined,
-        bg: "#1d4ed8",
-        bgHover: "#1e40af",
+        accent: "#16407F",
       },
       {
         key: "products" as const,
         title: "المنتجات",
         description: "إضافة وتعديل المنتجات، وتوليد أكواد QR",
         href: "/admin/products",
-        bg: "#16a34a",
-        bgHover: "#15803d",
+        accent: "#1F8A5B",
       },
       {
         key: "qr_codes" as const,
         title: "أكواد QR",
         description: "متابعة الأكواد المولدة وحالة استخدامها",
         href: "/admin/qr-codes",
-        bg: "#dc2626",
-        bgHover: "#b91c1c",
+        accent: "#C4952E",
       },
       {
         key: "label_templates" as const,
         title: "قوالب الليبل",
         description: "تصميم وإدارة قوالب طباعة الليبلات",
         href: "/admin/label-templates",
-        bg: "#ea580c",
-        bgHover: "#c2410c",
+        accent: "#C85A28",
       },
       {
         key: "settings" as const,
         title: "الإعدادات",
         description: "نسب توزيع النقاط بين الميكانيكي والمبيعات",
         href: "/admin/settings",
-        bg: "#7c3aed",
-        bgHover: "#6d28d9",
+        accent: "#7A409E",
       },
     ];
 
@@ -154,8 +165,7 @@ export default function AdminPage() {
         title: "إدارة المستخدمين",
         description: "إنشاء حسابات إدارية وتحديد صلاحيات كل موظف",
         href: "/admin/users",
-        bg: "#0f172a",
-        bgHover: "#1e293b",
+        accent: "#0E2C5C",
       });
     }
 
@@ -164,127 +174,154 @@ export default function AdminPage() {
   }, [stats.pendingRequests, role, permissions]);
 
   return (
-    <main
-      className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100 p-4 md:p-8"
-      dir="rtl"
-    >
-      <div className="max-w-7xl mx-auto space-y-6">
-        <section className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-[2rem] shadow-xl p-8 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-1.5 shadow-md shrink-0">
-                <Image
-                  src="/galtex-logo.png"
-                  alt="GALTEX"
-                  width={56}
-                  height={56}
-                  priority
-                  className="h-full w-full object-contain"
-                />
-              </div>
+    <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif", background: C.beige, color: C.navy, minHeight: "100vh" }}>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+      <main className="gx-main" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 32px 60px" }}>
+
+        {/* ===== HERO ===== */}
+        <div className="gx-hero" style={{ position: "relative", background: `linear-gradient(130deg, ${C.blue} 0%, ${C.navy} 100%)`, borderRadius: 24, padding: "34px 40px", color: C.beige, overflow: "hidden", boxShadow: "0 26px 54px -30px rgba(18,44,92,0.6)", marginBottom: 24 }}>
+          <span style={{ position: "absolute", bottom: -70, insetInlineStart: -40, width: 220, height: 220, background: "rgba(196,149,46,0.1)", clipPath: "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)", animation: "gxFloat 7s ease-in-out infinite", pointerEvents: "none" }} />
+          <div className="gx-hero-row" style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <span style={{ display: "inline-flex", background: C.beige, borderRadius: 12, padding: "10px 15px" }}>
+                <img src="/galtex-logo.png" alt="GALTEX" style={{ height: 30, width: "auto", display: "block" }} />
+              </span>
               <div>
-                <h1 className="text-4xl font-bold">GALTEX Rewards</h1>
-                <p className="text-blue-100 mt-3 text-lg">لوحة تحكم الإدارة</p>
-              {adminName && (
-                <p className="text-blue-200 mt-2 text-sm">
-                  مرحباً، {adminName} {!isFullAccess && "— موظف"}
-                </p>
-              )}
+                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
+                  <span style={{ width: 12, height: 12, background: C.gold, display: "inline-block", clipPath: "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)" }} />
+                  <span style={{ fontSize: 13.5, color: C.gold, fontWeight: 600 }}>لوحة تحكم الإدارة</span>
+                </div>
+                <h1 style={{ fontSize: "clamp(24px,2.8vw,34px)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}>GALTEX Rewards</h1>
+                {adminName && (
+                  <p style={{ fontSize: 14.5, color: "#C6D2EA", margin: "5px 0 0" }}>مرحباً، {adminName} {!isFullAccess && "— موظف"}</p>
+                )}
               </div>
             </div>
-
-            <div className="flex flex-wrap gap-3">
+            <div className="gx-hero-actions" style={{ display: "flex", gap: 12 }}>
               <button
                 type="button"
                 onClick={loadData}
                 disabled={isLoading}
-                className="bg-white text-blue-800 hover:bg-blue-50 disabled:bg-gray-200 disabled:text-gray-400 px-6 py-3 rounded-2xl font-bold shadow-sm"
+                className="gx-btn"
+                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.22)", color: C.beige, fontFamily: "inherit", fontWeight: 600, fontSize: 14, padding: "11px 20px", borderRadius: 11, cursor: isLoading ? "not-allowed" : "pointer" }}
               >
                 {isLoading ? "جاري التحديث..." : "تحديث البيانات"}
               </button>
-
               <button
                 type="button"
                 onClick={handleLogout}
-                className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-2xl font-bold shadow-sm transition"
+                className="gx-btn"
+                style={{ background: C.gold, color: C.navy, fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px 20px", borderRadius: 11, border: "none", cursor: "pointer" }}
               >
                 تسجيل الخروج
               </button>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {/* ===== KPIs ===== */}
+        <div className="gx-kpis" style={{ display: "grid", gridTemplateColumns: "1.15fr 1fr 1fr 1fr 1fr", gap: 16, marginBottom: 40 }}>
+          <StatCard label="إجمالي النقاط" value={stats.totalPoints} variant="dark" />
           <StatCard label="إجمالي العملاء" value={stats.totalCustomers} />
-          <StatCard label="طلبات معلقة" value={stats.pendingRequests} />
           <StatCard label="الميكانيكيين" value={stats.mechanics} />
           <StatCard label="المبيعات / التجار" value={stats.sellers} />
-          <StatCard label="إجمالي النقاط" value={stats.totalPoints} dark />
-        </section>
+          <StatCard label="طلبات معلّقة" value={stats.pendingRequests} variant="gold" />
+        </div>
 
         {message && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl font-semibold text-center">
+          <div style={{ background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.25)", color: "#C0392B", padding: 16, borderRadius: 16, fontWeight: 600, textAlign: "center", marginBottom: 24 }}>
             {message}
           </div>
         )}
 
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">الأقسام</h2>
+        {/* ===== SECTIONS ===== */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <span style={{ width: 10, height: 10, background: C.gold, transform: "rotate(45deg)", display: "inline-block" }} />
+          <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: C.navy }}>الأقسام</h2>
+        </div>
 
-          {navCards.length === 0 ? (
-            <div className="bg-white rounded-3xl p-10 text-center text-gray-500 shadow-sm">
-              ما عندك صلاحية وصول لأي قسم حالياً — تواصل مع المدير العام
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {navCards.map((card) => (
-                <button
-                  key={card.href}
-                  type="button"
-                  onClick={() => router.push(card.href)}
-                  style={{ backgroundColor: card.bg }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = card.bgHover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = card.bg)}
-                  className="text-right rounded-[2rem] p-6 text-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-xl font-bold">{card.title}</h3>
-
-                    {card.badge && (
-                      <span className="bg-white/20 border border-white/30 text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">
-                        {card.badge}
-                      </span>
-                    )}
+        {navCards.length === 0 ? (
+          <div style={{ background: C.cream, border: "1px solid rgba(18,44,92,0.1)", borderRadius: 20, padding: 40, textAlign: "center", color: C.ink }}>
+            ما عندك صلاحية وصول لأي قسم حالياً — تواصل مع المدير العام
+          </div>
+        ) : (
+          <div className="gx-secs" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+            {navCards.map((card) => (
+              <button
+                key={card.href}
+                type="button"
+                onClick={() => router.push(card.href)}
+                className="gx-sec"
+                style={{ position: "relative", display: "block", width: "100%", textAlign: "right", background: C.cream, border: "1px solid rgba(18,44,92,0.1)", borderRadius: 20, padding: "26px 24px", overflow: "hidden", color: "inherit", fontFamily: "inherit", cursor: "pointer" }}
+              >
+                <span style={{ position: "absolute", top: 0, insetInline: 0, height: 5, background: card.accent }} />
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginTop: 6 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: `${card.accent}1F`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+                    <span style={{ width: 22, height: 22, background: card.accent, display: "inline-block", clipPath: "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)" }} />
                   </div>
+                  {card.badge && (
+                    <span style={{ background: "rgba(196,149,46,0.16)", border: "1px solid rgba(196,149,46,0.35)", color: C.goldDark, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 100, whiteSpace: "nowrap" }}>
+                      {card.badge}
+                    </span>
+                  )}
+                </div>
+                <h3 style={{ fontSize: 18.5, fontWeight: 700, margin: "0 0 8px", color: C.navy }}>{card.title}</h3>
+                <p style={{ fontSize: 14.5, color: C.slate, margin: 0, lineHeight: 1.7 }}>{card.description}</p>
+              </button>
+            ))}
+          </div>
+        )}
+      </main>
 
-                  <p className="text-white/80 mt-3 text-sm leading-6">{card.description}</p>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
+      <footer style={{ borderTop: "1px solid rgba(18,44,92,0.08)", background: "#ECE7DD" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "22px 32px", textAlign: "center" }}>
+          <span style={{ fontSize: 13, color: C.ink }}>© ٢٠٢٦ GALTEX — لوحة تحكم الإدارة</span>
+        </div>
+      </footer>
+
+      <style>{`
+        .gx-btn { transition: all .15s; }
+        .gx-btn:hover { filter: brightness(0.96); }
+        .gx-sec { transition: all .18s; }
+        .gx-sec:hover { transform: translateY(-3px); box-shadow: 0 18px 38px -20px rgba(18,44,92,0.4); border-color: rgba(18,44,92,0.2) !important; }
+        @keyframes gxFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @media (max-width:900px){
+          .gx-kpis { grid-template-columns:1fr 1fr !important; }
+          .gx-secs { grid-template-columns:1fr !important; }
+          .gx-main { padding:22px 16px 48px !important; }
+          .gx-hero { padding:26px 24px !important; }
+          .gx-hero-row { flex-direction:column; align-items:flex-start !important; }
+          .gx-hero-actions { width:100%; }
+        }
+      `}</style>
+    </div>
   );
 }
 
 function StatCard({
   label,
   value,
-  dark = false,
+  variant = "normal",
 }: {
   label: string;
   value: number;
-  dark?: boolean;
+  variant?: "normal" | "dark" | "gold";
 }) {
+  const box: React.CSSProperties =
+    variant === "dark"
+      ? { background: "linear-gradient(140deg,#16407F,#0E2C5C)", color: "#F5F2EC", border: "none" }
+      : variant === "gold"
+      ? { background: "#FBF3DC", border: "1px solid rgba(196,149,46,0.35)", color: "#8F6819" }
+      : { background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", color: "#0E2C5C" };
+
+  const labelColor = variant === "dark" ? "#C6D2EA" : variant === "gold" ? "#8F6819" : "#7A8498";
+  const valueColor = variant === "dark" ? "#F5F2EC" : variant === "gold" ? "#8F6819" : "#0E2C5C";
+
   return (
-    <div
-      className={`rounded-2xl p-3 md:p-5 shadow-sm ${
-        dark ? "bg-gradient-to-r from-blue-800 to-blue-950 text-white" : "bg-white text-blue-900"
-      }`}
-    >
-      <p className={`text-xs md:text-sm ${dark ? "text-blue-100" : "text-gray-500"}`}>{label}</p>
-      <p className="text-2xl md:text-4xl font-bold mt-1 md:mt-3">{value}</p>
+    <div style={{ borderRadius: 18, padding: "22px 24px", ...box }}>
+      <div style={{ fontSize: 13.5, color: labelColor, marginBottom: 10 }}>{label}</div>
+      <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 40, lineHeight: 1, color: valueColor }}>{value}</div>
     </div>
   );
 }
