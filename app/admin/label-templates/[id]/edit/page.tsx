@@ -557,9 +557,9 @@ function ToolbarButton({
   tone?: "primary" | "ghost" | "danger";
 }) {
   const styles: Record<string, React.CSSProperties> = {
-    primary: { backgroundColor: COLORS.brand, color: "#fff", border: `1px solid ${COLORS.brand}` },
-    ghost: { backgroundColor: "#fff", color: COLORS.ink, border: `1px solid ${COLORS.line}` },
-    danger: { backgroundColor: "#fff", color: COLORS.danger, border: `1px solid #FCA5A5` },
+    primary: { backgroundColor: COLORS.brand, color: "#F5F2EC", border: "none" },
+    ghost: { backgroundColor: "#FFFDF8", color: COLORS.ink, border: "1px solid rgba(18,44,92,0.18)" },
+    danger: { backgroundColor: "rgba(192,57,43,0.1)", color: COLORS.danger, border: "none" },
   };
 
   return (
@@ -567,8 +567,8 @@ function ToolbarButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-      style={styles[tone]}
+      className="flex items-center gap-2 text-sm font-bold transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+      style={{ ...styles[tone], padding: "10px 18px", borderRadius: 11, fontFamily: "inherit" }}
     >
       {icon}
       <span>{label}</span>
@@ -586,22 +586,22 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-white p-5" style={{ border: `1px solid ${COLORS.line}` }}>
-      <div className="mb-4 flex items-center gap-2.5">
+    <section className="p-5" style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 16 }}>
+      <div className="mb-4 flex items-center gap-2.5" style={{ flexDirection: "row-reverse", justifyContent: "flex-end" }}>
         <span
-          className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-black text-white"
-          style={{ backgroundColor: COLORS.brand }}
+          className="flex items-center justify-center text-xs font-black text-white"
+          style={{ height: 24, width: 24, borderRadius: 8, backgroundColor: COLORS.brand }}
         >
           {index}
         </span>
-        <h2 className="text-base font-black" style={{ color: COLORS.ink }}>{title}</h2>
+        <h2 className="font-black" style={{ fontSize: 16.5, color: COLORS.ink }}>{title}</h2>
       </div>
       {children}
     </section>
   );
 }
 
-const inputStyle: React.CSSProperties = { border: `1px solid ${COLORS.line}` };
+const inputStyle: React.CSSProperties = { border: "1px solid rgba(18,44,92,0.18)", background: "#FFFDF8", color: "#0E2C5C", fontFamily: "inherit" };
 
 /* =========================================================================
    المكوّن الرئيسي
@@ -1249,10 +1249,10 @@ export default function EditLabelTemplatePage() {
 
   return (
     <main
-      className="min-h-screen"
+      className="min-h-screen gtx-page"
       style={
         {
-          backgroundColor: COLORS.canvasBg,
+          backgroundColor: "#F5F2EC",
           "--gtx-accent": COLORS.accent,
           "--gtx-brand": COLORS.brand,
         } as React.CSSProperties
@@ -1262,26 +1262,37 @@ export default function EditLabelTemplatePage() {
       {/* CSS خام (ليس كلاسات Tailwind) لمقابض التحكم — يضمن ظهورها دائمًا
           بدل الاعتماد على كلاسات لم تُستخدم سابقًا بالمشروع وتختفي أحيانًا */}
       <style>{HANDLES_STYLE_TAG}</style>
+      <style>{`.gtx-page, .gtx-page * { font-family: 'IBM Plex Sans Arabic', sans-serif; }`}</style>
 
-      {/* ===== Header / Toolbar ===== */}
-      <header className="sticky top-0 z-50 bg-white px-5 py-4" style={{ borderBottom: `1px solid ${COLORS.line}` }}>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+      {/* ===== Header علوي خفيف (شعار GALTEX) ===== */}
+      <header className="sticky top-0 z-50" style={{ background: "rgba(245,242,236,0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(18,44,92,0.08)", padding: "16px 28px" }}>
+        <div className="mx-auto flex max-w-[2000px] items-center justify-between gap-4">
+          <div className="flex items-center" style={{ gap: 11 }}>
+            <img src="/galtex-logo.png" alt="GALTEX" style={{ height: 32, width: "auto", display: "block" }} />
+            <span style={{ width: 1, height: 26, background: "rgba(18,44,92,0.15)" }} />
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: "#C4952E" }}>الإدارة</span>
+          </div>
+          <button type="button" onClick={handleGoBack} style={{ background: "none", border: "none", color: "#16407F", fontFamily: "inherit", fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>‹ لوحة التحكم</button>
+        </div>
+      </header>
+
+      {/* ===== Toolbar: عنوان الصفحة + أزرار التحكم ===== */}
+      <div style={{ background: "#FFFDF8", borderBottom: "1px solid rgba(18,44,92,0.08)", padding: "18px 28px" }}>
         <div className="mx-auto flex max-w-[2000px] flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white"
-              style={{ backgroundColor: COLORS.brand }}
-            >
-              GX
-            </span>
+            <span className="flex items-center justify-center text-sm font-black text-white" style={{ height: 44, width: 44, borderRadius: 12, backgroundColor: COLORS.brand }}>GX</span>
             <div>
-              <h1 className="text-xl font-black" style={{ color: COLORS.ink }}>تعديل قالب الليبل</h1>
-              <p className="text-xs font-medium" style={{ color: COLORS.sub }}>
+              <h1 className="font-black" style={{ fontSize: 21, color: COLORS.ink, margin: 0 }}>تعديل قالب الليبل</h1>
+              <p className="font-medium" style={{ fontSize: 12.5, color: COLORS.sub, margin: "2px 0 0" }}>
                 تحكم حر بالماوس لكل عنصر داخل الليبل — {template.width_mm} × {template.height_mm} مم
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <ToolbarButton icon={<IconArrowBack size={16} />} label="رجوع" onClick={handleGoBack} />
             <ToolbarButton icon={<IconPlus size={16} />} label="جديد" onClick={() => openNewTemplate(true)} />
             <ToolbarButton icon={<IconInfo size={16} />} label="تعديل" onClick={handleEditMode} />
             <ToolbarButton icon={<IconSearch size={16} />} label="استعلام" onClick={handleQueryCurrent} />
@@ -1292,7 +1303,6 @@ export default function EditLabelTemplatePage() {
               disabled={saving}
               tone="danger"
             />
-            <span className="mx-1 h-8 w-px" style={{ backgroundColor: COLORS.line }} />
             <ToolbarButton
               icon={<IconSave size={16} />}
               label={saving ? "جاري الحفظ..." : "حفظ"}
@@ -1300,10 +1310,9 @@ export default function EditLabelTemplatePage() {
               disabled={saving}
               tone="primary"
             />
-            <ToolbarButton icon={<IconArrowBack size={16} />} label="رجوع" onClick={handleGoBack} />
           </div>
         </div>
-      </header>
+      </div>
 
       {/* ===== شريط إضافة العناصر — كامل العرض تحت الهيدر مباشرة ===== */}
       <div className="bg-white" style={{ borderBottom: `1px solid ${COLORS.line}` }}>
