@@ -259,134 +259,87 @@ export default function AdminUsersPage() {
   if (currentRole !== "super_admin") {
     return null; // يمنع أي وميض بالمحتوى قبل ما يصير التحويل بـ useEffect
   }
-
   return (
-    <main
-      className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100 p-4 md:p-8"
-      dir="rtl"
-    >
-      <div className="max-w-5xl mx-auto space-y-6">
-        <section className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-[2rem] shadow-xl p-7 md:p-9 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div>
-              <p className="text-blue-200 font-semibold">GALTEX Rewards</p>
-              <h1 className="text-3xl md:text-4xl font-bold mt-2">إدارة المستخدمين</h1>
-              <p className="text-blue-100 mt-3">
-                أنشئ حسابات إدارية جديدة وحدّد بالضبط أي الأقسام يقدر كل موظف يوصلها
-              </p>
-            </div>
+    <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif", background: "#F5F2EC", color: "#0E2C5C", minHeight: "100vh" }}>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-            <button
-              type="button"
-              onClick={() => router.push("/admin")}
-              className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-6 py-3 rounded-2xl font-bold transition"
-            >
-              لوحة الإدارة
-            </button>
+      {/* ===== HEADER ===== */}
+      <header style={{ background: "rgba(245,242,236,0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(18,44,92,0.08)", position: "sticky", top: 0, zIndex: 30 }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <img src="/galtex-logo.png" alt="GALTEX" style={{ height: 32, width: "auto", display: "block" }} />
+            <span style={{ width: 1, height: 26, background: "rgba(18,44,92,0.15)" }} />
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: "#C4952E" }}>الإدارة</span>
           </div>
-        </section>
+          <button type="button" onClick={() => router.push("/admin")} style={{ background: "none", border: "none", color: "#16407F", fontFamily: "inherit", fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>‹ لوحة التحكم</button>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 1080, margin: "0 auto", padding: "34px 28px 60px" }}>
+
+        {/* العنوان */}
+        <div style={{ marginBottom: 26 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <span style={{ width: 12, height: 12, background: "#C4952E", display: "inline-block", clipPath: "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)" }} />
+            <h1 style={{ fontSize: "clamp(24px,2.6vw,32px)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, color: "#0E2C5C" }}>إدارة المستخدمين</h1>
+          </div>
+          <p style={{ fontSize: 15.5, color: "#586377", margin: 0 }}>أنشئ حسابات إدارية جديدة وحدّد بالضبط أي الأقسام يقدر كل موظف يوصلها</p>
+        </div>
 
         {message && (
-          <div
-            className={`rounded-2xl p-4 text-center font-bold border ${
-              messageType === "success"
-                ? "bg-green-50 border-green-200 text-green-700"
-                : "bg-red-50 border-red-200 text-red-700"
-            }`}
-          >
+          <div style={{ borderRadius: 16, padding: 16, textAlign: "center", fontWeight: 700, marginBottom: 22, background: messageType === "success" ? "rgba(31,138,91,0.1)" : "rgba(192,57,43,0.08)", border: messageType === "success" ? "1px solid rgba(31,138,91,0.3)" : "1px solid rgba(192,57,43,0.25)", color: messageType === "success" ? "#1F8A5B" : "#C0392B" }}>
             {message}
           </div>
         )}
 
-        {/* ============== نموذج إنشاء/تعديل حساب ============== */}
-        <section className="bg-white rounded-[2rem] shadow-xl p-6 md:p-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <h2 className="text-2xl font-bold text-gray-900">
+        {/* ============== نموذج إنشاء/تعديل ============== */}
+        <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "26px", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: 21, fontWeight: 700, margin: 0, color: "#0E2C5C" }}>
               {isEditing ? `تعديل حساب: ${form.full_name}` : "إنشاء حساب جديد"}
             </h2>
-
             {isEditing && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-2xl font-bold transition"
-              >
+              <button type="button" onClick={resetForm} style={{ background: "rgba(18,44,92,0.06)", color: "#586377", border: "none", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, padding: "9px 18px", borderRadius: 11, cursor: "pointer" }}>
                 إلغاء التعديل
               </button>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 18 }}>
+            <div className="gx-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">الاسم الكامل</label>
-                <input
-                  type="text"
-                  required
-                  value={form.full_name}
-                  onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
-                />
+                <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>الاسم الكامل</label>
+                <input type="text" required value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} className="gx-in" style={{ width: "100%", fontFamily: "inherit", fontSize: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: "#FFFFFF", color: "#0E2C5C" }} />
               </div>
-
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">اسم المستخدم</label>
-                <input
-                  type="text"
-                  required
-                  disabled={isEditing}
-                  value={form.username}
-                  onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-                  dir="ltr"
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100 disabled:text-gray-400"
-                />
+                <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>اسم المستخدم</label>
+                <input type="text" required disabled={isEditing} value={form.username} onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))} dir="ltr" className="gx-in" style={{ width: "100%", fontFamily: "inherit", fontSize: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: isEditing ? "rgba(18,44,92,0.05)" : "#FFFFFF", color: isEditing ? "#9AA3B5" : "#0E2C5C" }} />
                 {isEditing && (
-                  <p className="text-xs text-gray-400 mt-1">اسم المستخدم لا يمكن تغييره بعد الإنشاء</p>
+                  <p style={{ fontSize: 12, color: "#9AA3B5", margin: "6px 0 0" }}>اسم المستخدم لا يمكن تغييره بعد الإنشاء</p>
                 )}
               </div>
-
               {!isEditing && (
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">كلمة المرور</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.password}
-                    onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                    dir="ltr"
-                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 bg-yellow-50 outline-none focus:ring-2 focus:ring-blue-600"
-                  />
+                  <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>كلمة المرور</label>
+                  <input type="text" required value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} dir="ltr" className="gx-in" style={{ width: "100%", fontFamily: "inherit", fontSize: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: "#FBF3DC", color: "#0E2C5C" }} />
                 </div>
               )}
             </div>
 
-            {/* الحسابات الجديدة كلها موظفين بصلاحيات محددة. حساب المدير العام
-                (super_admin) وحيد بالنظام ولا يُنشأ من هنا. */}
             {form.role === "super_admin" ? (
-              <div className="bg-purple-50 border border-purple-100 text-purple-700 rounded-2xl p-4 text-sm font-semibold">
-                هذا حساب "مدير عام" ويملك كل الصلاحيات تلقائيًا.
+              <div style={{ background: "rgba(122,64,158,0.08)", border: "1px solid rgba(122,64,158,0.25)", color: "#7A409E", borderRadius: 14, padding: 16, fontSize: 14, fontWeight: 600 }}>
+                هذا حساب &quot;مدير عام&quot; ويملك كل الصلاحيات تلقائيًا.
               </div>
             ) : (
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-3">
-                  الأقسام المسموح للموظف يوصلها
-                </label>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 12 }}>الأقسام المسموح للموظف يوصلها</label>
+                <div className="gx-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   {PERMISSION_SECTIONS.map((section) => (
-                    <label
-                      key={section.key}
-                      className="flex items-start gap-3 border border-slate-200 rounded-2xl p-4 bg-slate-50 cursor-pointer hover:bg-blue-50 transition"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={Boolean(form.permissions[section.key])}
-                        onChange={() => togglePermission(section.key)}
-                        className="w-5 h-5 mt-0.5"
-                      />
+                    <label key={section.key} className="gx-perm" style={{ display: "flex", alignItems: "flex-start", gap: 12, border: "1px solid rgba(18,44,92,0.12)", borderRadius: 14, padding: 14, background: "#F5F2EC", cursor: "pointer" }}>
+                      <input type="checkbox" checked={Boolean(form.permissions[section.key])} onChange={() => togglePermission(section.key)} style={{ width: 18, height: 18, marginTop: 2, accentColor: "#16407F", flexShrink: 0 }} />
                       <div>
-                        <p className="font-bold text-gray-800">{section.label}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{section.description}</p>
+                        <p style={{ fontWeight: 700, color: "#0E2C5C", margin: 0, fontSize: 14.5 }}>{section.label}</p>
+                        <p style={{ fontSize: 12, color: "#7A8498", margin: "3px 0 0" }}>{section.description}</p>
                       </div>
                     </label>
                   ))}
@@ -395,113 +348,69 @@ export default function AdminUsersPage() {
             )}
 
             {isEditing && (
-              <label className="flex items-center gap-3 border border-gray-300 rounded-2xl px-4 py-3 w-full cursor-pointer md:w-auto">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
-                  className="w-5 h-5"
-                />
-                <span className="font-bold text-gray-700">الحساب فعّال</span>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 12, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 16px", cursor: "pointer", alignSelf: "flex-start" }}>
+                <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))} style={{ width: 18, height: 18, accentColor: "#16407F" }} />
+                <span style={{ fontWeight: 700, color: "#33405A" }}>الحساب فعّال</span>
               </label>
             )}
 
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg transition"
-            >
+            <button type="submit" disabled={isSaving} style={{ alignSelf: "flex-start", background: isSaving ? "#9AA3B5" : "#1F8A5B", color: "#fff", fontFamily: "inherit", fontWeight: 700, fontSize: 15, padding: "13px 32px", border: "none", borderRadius: 12, cursor: isSaving ? "not-allowed" : "pointer" }}>
               {isSaving ? "جاري الحفظ..." : isEditing ? "حفظ التعديلات" : "إنشاء الحساب"}
             </button>
           </form>
         </section>
 
         {/* ============== قائمة الحسابات ============== */}
-        <section className="bg-white rounded-[2rem] shadow-xl p-6 md:p-8">
-          <h2 className="text-2xl font-bold text-gray-900">كل الحسابات الإدارية</h2>
+        <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "26px" }}>
+          <h2 style={{ fontSize: 21, fontWeight: 700, margin: "0 0 4px", color: "#0E2C5C" }}>كل الحسابات الإدارية</h2>
 
           {isLoading ? (
-            <div className="text-center py-16 text-gray-500">جاري التحميل...</div>
+            <div style={{ textAlign: "center", padding: "64px 0", color: "#7A8498" }}>جاري التحميل...</div>
           ) : sortedUsers.length === 0 ? (
-            <div className="mt-6 bg-slate-50 rounded-3xl p-12 text-center text-gray-500">
-              لا توجد حسابات بعد
-            </div>
+            <div style={{ marginTop: 22, background: "rgba(18,44,92,0.03)", borderRadius: 16, padding: 48, textAlign: "center", color: "#7A8498" }}>لا توجد حسابات بعد</div>
           ) : (
-            <div className="overflow-x-auto mt-6">
-              <table className="w-full text-right border-separate border-spacing-y-3">
+            <div className="gx-tablewrap" style={{ overflowX: "auto", marginTop: 22 }}>
+              <table style={{ width: "100%", textAlign: "right", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr className="text-blue-900 text-sm">
-                    <th className="px-4">الاسم</th>
-                    <th className="px-4">اسم المستخدم</th>
-                    <th className="px-4">النوع</th>
-                    <th className="px-4">الصلاحيات</th>
-                    <th className="px-4">الحالة</th>
-                    <th className="px-4">إجراءات</th>
+                  <tr style={{ color: "#586377", fontSize: 13, background: "rgba(18,44,92,0.04)" }}>
+                    <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>الاسم</th>
+                    <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>اسم المستخدم</th>
+                    <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "center" }}>النوع</th>
+                    <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "center" }}>الصلاحيات</th>
+                    <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "center" }}>الحالة</th>
+                    <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "center" }}>إجراءات</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {sortedUsers.map((user) => {
                     const isSelf = user.id === currentAdminId;
-                    const activePermissionsCount = PERMISSION_SECTIONS.filter(
-                      (s) => user.permissions?.[s.key]
-                    ).length;
-
+                    const activePermissionsCount = PERMISSION_SECTIONS.filter((s) => user.permissions?.[s.key]).length;
                     return (
-                      <tr key={user.id} className="bg-slate-50 hover:bg-blue-50 transition">
-                        <td className="p-4 rounded-r-2xl font-bold text-gray-800">
+                      <tr key={user.id} className="gx-row" style={{ background: "#FFFFFF" }}>
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", fontWeight: 700, color: "#0E2C5C" }}>
                           {user.full_name}
-                          {isSelf && <span className="text-xs text-blue-500 mr-2">(أنت)</span>}
+                          {isSelf && <span style={{ fontSize: 12, color: "#16407F", marginInlineStart: 8 }}>(أنت)</span>}
                         </td>
-
-                        <td className="p-4 text-gray-700" dir="ltr">{user.username}</td>
-
-                        <td className="p-4">
-                          <span
-                            className={`px-3 py-1 rounded-full text-sm font-bold border ${
-                              user.role === "super_admin"
-                                ? "bg-purple-50 text-purple-700 border-purple-100"
-                                : "bg-blue-50 text-blue-700 border-blue-100"
-                            }`}
-                          >
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", color: "#586377" }} dir="ltr">{user.username}</td>
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", textAlign: "center" }}>
+                          <span style={{ padding: "4px 12px", borderRadius: 100, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", border: "1px solid", background: user.role === "super_admin" ? "rgba(122,64,158,0.1)" : "rgba(22,64,127,0.08)", color: user.role === "super_admin" ? "#7A409E" : "#16407F", borderColor: user.role === "super_admin" ? "rgba(122,64,158,0.25)" : "#dfe6f2" }}>
                             {user.role === "super_admin" ? "مدير عام" : "موظف"}
                           </span>
                         </td>
-
-                        <td className="p-4 text-gray-600 text-sm">
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", textAlign: "center", color: "#586377", fontSize: 13.5 }}>
                           {user.role === "super_admin" ? "الكل" : `${activePermissionsCount} من ${PERMISSION_SECTIONS.length}`}
                         </td>
-
-                        <td className="p-4">
-                          <span
-                            className={`px-3 py-1 rounded-full text-sm font-bold border ${
-                              user.is_active
-                                ? "bg-green-50 text-green-700 border-green-100"
-                                : "bg-red-50 text-red-700 border-red-100"
-                            }`}
-                          >
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", textAlign: "center" }}>
+                          <span style={{ padding: "4px 12px", borderRadius: 100, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", border: "1px solid", background: user.is_active ? "rgba(31,138,91,0.1)" : "rgba(192,57,43,0.08)", color: user.is_active ? "#1F8A5B" : "#C0392B", borderColor: user.is_active ? "rgba(31,138,91,0.3)" : "rgba(192,57,43,0.25)" }}>
                             {user.is_active ? "فعّال" : "موقوف"}
                           </span>
                         </td>
-
-                        <td className="p-4 rounded-l-2xl">
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => startEdit(user)}
-                              className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 font-bold text-sm"
-                            >
+                        <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(18,44,92,0.07)", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "nowrap" }}>
+                            <button type="button" onClick={() => startEdit(user)} style={{ background: "rgba(196,149,46,0.16)", color: "#8F6819", border: "none", fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
                               تعديل
                             </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setResetPasswordFor(user);
-                                setNewPassword("");
-                              }}
-                              className="rounded-xl bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 font-bold text-sm"
-                            >
+                            <button type="button" onClick={() => { setResetPasswordFor(user); setNewPassword(""); }} style={{ background: "rgba(22,64,127,0.1)", color: "#16407F", border: "none", fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
                               كلمة مرور جديدة
                             </button>
                           </div>
@@ -514,49 +423,41 @@ export default function AdminUsersPage() {
             </div>
           )}
         </section>
-      </div>
+      </main>
 
+      {/* ============== نافذة كلمة مرور جديدة ============== */}
       {resetPasswordFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
-            <h2 className="text-2xl font-black text-blue-950">تعيين كلمة مرور جديدة</h2>
-            <p className="mt-2 text-gray-500">
-              الحساب: <span className="font-bold text-gray-800">{resetPasswordFor.full_name}</span>
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(14,44,92,0.55)", padding: 16 }}>
+          <div style={{ width: "100%", maxWidth: 440, borderRadius: 24, background: "#FFFDF8", padding: 26, boxShadow: "0 30px 70px -30px rgba(0,0,0,0.5)" }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0E2C5C", margin: 0 }}>تعيين كلمة مرور جديدة</h2>
+            <p style={{ marginTop: 8, color: "#586377" }}>
+              الحساب: <span style={{ fontWeight: 700, color: "#0E2C5C" }}>{resetPasswordFor.full_name}</span>
             </p>
-
-            <div className="mt-5">
-              <label className="block text-sm font-bold text-gray-700 mb-2">كلمة المرور الجديدة</label>
-              <input
-                type="text"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                dir="ltr"
-                className="w-full border border-gray-300 rounded-2xl px-4 py-3 bg-yellow-50 outline-none focus:ring-2 focus:ring-blue-600"
-              />
+            <div style={{ marginTop: 20 }}>
+              <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>كلمة المرور الجديدة</label>
+              <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} dir="ltr" className="gx-in" style={{ width: "100%", fontFamily: "inherit", fontSize: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: "#FBF3DC", color: "#0E2C5C" }} />
             </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={submitPasswordReset}
-                disabled={isResetting}
-                className="flex-1 rounded-2xl bg-green-600 hover:bg-green-700 disabled:bg-gray-500 px-6 py-4 font-bold text-white shadow-lg"
-              >
+            <div style={{ marginTop: 22, display: "flex", gap: 12 }}>
+              <button type="button" onClick={submitPasswordReset} disabled={isResetting} style={{ flex: 1, borderRadius: 12, background: isResetting ? "#9AA3B5" : "#1F8A5B", padding: "13px", fontFamily: "inherit", fontWeight: 700, color: "#fff", border: "none", cursor: isResetting ? "not-allowed" : "pointer" }}>
                 {isResetting ? "جاري الحفظ..." : "تأكيد"}
               </button>
-
-              <button
-                type="button"
-                onClick={() => setResetPasswordFor(null)}
-                disabled={isResetting}
-                className="rounded-2xl bg-gray-400 hover:bg-gray-500 disabled:bg-gray-300 px-6 py-4 font-bold text-white shadow-lg"
-              >
+              <button type="button" onClick={() => setResetPasswordFor(null)} disabled={isResetting} style={{ borderRadius: 12, background: "#E4E1DA", padding: "13px 26px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: isResetting ? "not-allowed" : "pointer" }}>
                 إلغاء
               </button>
             </div>
           </div>
         </div>
       )}
-    </main>
+
+      <style>{`
+        .gx-in:focus { outline: none; border-color: #16407F; box-shadow: 0 0 0 3px rgba(22,64,127,0.12); }
+        .gx-in::placeholder { color: #9AA3B5; }
+        .gx-perm:hover { border-color: #16407F !important; background: rgba(22,64,127,0.04) !important; }
+        .gx-row:hover { background: rgba(18,44,92,0.02) !important; }
+        @media (max-width:820px){
+          .gx-2col { grid-template-columns:1fr !important; }
+        }
+      `}</style>
+    </div>
   );
 }

@@ -893,94 +893,68 @@ console.log("3", ids);
   }
 
   if (isAuthorized !== true) return null;
+  const star = "polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)";
 
   return (
-    <main
-      className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100 p-4 md:p-8"
-      dir="rtl"
-    >
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-[2rem] bg-gradient-to-r from-blue-900 to-blue-700 p-7 text-white shadow-xl md:p-9">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-semibold text-blue-200">GALTEX Rewards</p>
-              <h1 className="mt-2 text-3xl font-bold md:text-4xl">إدارة المنتجات</h1>
-              <p className="mt-3 text-blue-100">إضافة، تعديل، حذف، وإنشاء QR مع طباعة الليبل مباشرة</p>
+    <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif", background: "#F5F2EC", color: "#0E2C5C", minHeight: "100vh" }}>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+      {/* ===== HEADER ===== */}
+      <header style={{ background: "rgba(245,242,236,0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(18,44,92,0.08)", position: "sticky", top: 0, zIndex: 30 }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "16px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <img src="/galtex-logo.png" alt="GALTEX" style={{ height: 32, width: "auto", display: "block" }} />
+            <span style={{ width: 1, height: 26, background: "rgba(18,44,92,0.15)" }} />
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: "#C4952E" }}>الإدارة</span>
+          </div>
+          <button type="button" onClick={() => router.push("/admin")} style={{ background: "none", border: "none", color: "#16407F", fontFamily: "inherit", fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>‹ لوحة التحكم</button>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 1240, margin: "0 auto", padding: "34px 28px 60px" }}>
+
+        {/* العنوان + أزرار */}
+        <div className="gx-titlerow" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginBottom: 26 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+              <span style={{ width: 13, height: 13, background: "#C4952E", display: "inline-block", transform: "rotate(45deg)" }} />
+              <h1 style={{ fontSize: "clamp(24px,2.6vw,32px)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, color: "#0E2C5C" }}>إدارة المنتجات</h1>
             </div>
+            <p style={{ fontSize: 15.5, color: "#586377", margin: 0 }}>إضافة، تعديل، حذف، وإنشاء QR مع طباعة الليبل مباشرة</p>
+          </div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => router.push("/admin/label-templates/new/edit")} style={{ background: "#C4952E", border: "none", color: "#0E2C5C", fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px 22px", borderRadius: 12, cursor: "pointer" }}>
+              إدارة قوالب الليبل
+            </button>
+          </div>
+        </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/admin/label-templates/new/edit")}
-                style={{ backgroundColor: "#eab308" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ca8a04")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#eab308")}
-                className="rounded-2xl px-6 py-3 font-bold text-white shadow-lg"
-              >
-                إدارة قوالب الليبل
-              </button>
-
-              <button
-                type="button"
-                onClick={() => router.push("/admin")}
-                style={{ backgroundColor: "#334155" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1e293b")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#334155")}
-                className="rounded-2xl px-6 py-3 font-bold text-white shadow-lg"
-              >
-                العودة إلى لوحة الإدارة
-              </button>
-            </div>
+        {/* الإحصائيات */}
+        <div className="gx-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 26 }}>
+          <div style={{ borderRadius: 18, padding: "20px 22px", background: "linear-gradient(140deg,#16407F,#0E2C5C)", border: "none" }}>
+            <div style={{ fontSize: 13, color: "#C6D2EA", marginBottom: 8 }}>إجمالي نقاط المنتجات</div>
+            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: "#F5F2EC" }}>{stats.totalPoints}</div>
           </div>
-        </section>
-
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-xs md:text-sm text-gray-500">إجمالي المنتجات</p>
-            <p className="text-2xl md:text-4xl font-bold mt-1 text-blue-900">{stats.total}</p>
+          <div style={{ borderRadius: 18, padding: "20px 22px", background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)" }}>
+            <div style={{ fontSize: 13, color: "#7A8498", marginBottom: 8 }}>موقوفة</div>
+            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: "#C0392B" }}>{stats.inactive}</div>
           </div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-xs md:text-sm text-gray-500">فعّالة</p>
-            <p className="text-2xl md:text-4xl font-bold mt-1 text-green-700">{stats.active}</p>
+          <div style={{ borderRadius: 18, padding: "20px 22px", background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)" }}>
+            <div style={{ fontSize: 13, color: "#7A8498", marginBottom: 8 }}>فعّالة</div>
+            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: "#1F8A5B" }}>{stats.active}</div>
           </div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-xs md:text-sm text-gray-500">موقوفة</p>
-            <p className="text-2xl md:text-4xl font-bold mt-1 text-red-600">{stats.inactive}</p>
+          <div style={{ borderRadius: 18, padding: "20px 22px", background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)" }}>
+            <div style={{ fontSize: 13, color: "#7A8498", marginBottom: 8 }}>إجمالي المنتجات</div>
+            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: "#0E2C5C" }}>{stats.total}</div>
           </div>
-          <div
-            className="rounded-2xl p-4 shadow-sm text-white"
-            style={{ background: "linear-gradient(to left, #1e3a8a, #1e40af)" }}
-          >
-            <p className="text-xs md:text-sm text-blue-100">إجمالي نقاط المنتجات</p>
-            <p className="text-2xl md:text-4xl font-bold mt-1">{stats.totalPoints}</p>
-          </div>
-        </section>
+        </div>
 
         {message && (
-          <div
-            className={`rounded-2xl border p-4 text-center font-bold ${
-              messageType === "success"
-                ? "border-green-200 bg-green-50 text-green-700"
-                : "border-red-200 bg-red-50 text-red-700"
-            }`}
-          >
+          <div style={{ borderRadius: 16, padding: 16, textAlign: "center", fontWeight: 700, marginBottom: 22, background: messageType === "success" ? "rgba(31,138,91,0.1)" : "rgba(192,57,43,0.08)", border: messageType === "success" ? "1px solid rgba(31,138,91,0.3)" : "1px solid rgba(192,57,43,0.25)", color: messageType === "success" ? "#1F8A5B" : "#C0392B" }}>
             {message}
-
             {inactiveDuplicateId && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={handleActivateDuplicate}
-                  disabled={isActivatingDuplicate}
-                  style={{ backgroundColor: isActivatingDuplicate ? "#9ca3af" : "#16a34a" }}
-                  onMouseEnter={(e) => {
-                    if (!isActivatingDuplicate) e.currentTarget.style.backgroundColor = "#15803d";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActivatingDuplicate) e.currentTarget.style.backgroundColor = "#16a34a";
-                  }}
-                  className="rounded-xl px-5 py-2.5 font-bold text-white shadow-lg"
-                >
+              <div style={{ marginTop: 12 }}>
+                <button type="button" onClick={handleActivateDuplicate} disabled={isActivatingDuplicate} style={{ background: isActivatingDuplicate ? "#9AA3B5" : "#1F8A5B", color: "#fff", border: "none", fontFamily: "inherit", fontWeight: 700, padding: "10px 20px", borderRadius: 11, cursor: isActivatingDuplicate ? "not-allowed" : "pointer" }}>
                   {isActivatingDuplicate ? "جاري التفعيل..." : "فعّل المنتج الموقوف بدل إنشاء جديد"}
                 </button>
               </div>
@@ -988,29 +962,22 @@ console.log("3", ids);
           </div>
         )}
 
-        <section className="rounded-[2rem] bg-white p-6 shadow-xl md:p-8">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        {/* ============== نموذج إضافة/تعديل ============== */}
+        <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "26px", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">{editingProductId ? "تعديل المنتج" : "إضافة منتج جديد"}</h2>
-              <p className="mt-2 text-gray-500">أدخل بيانات المنتج واختر صورة المنتج</p>
+              <h2 style={{ fontSize: 21, fontWeight: 700, margin: 0, color: "#0E2C5C" }}>{editingProductId ? "تعديل المنتج" : "إضافة منتج جديد"}</h2>
+              <p style={{ fontSize: 14.5, color: "#586377", margin: "4px 0 0" }}>أدخل بيانات المنتج واختر صورة المنتج</p>
             </div>
-
             {editingProductId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                style={{ backgroundColor: "#9333ea" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#7e22ce")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#9333ea")}
-                className="rounded-2xl px-6 py-3 font-bold text-white shadow-lg"
-              >
+              <button type="button" onClick={resetForm} style={{ background: "rgba(18,44,92,0.06)", color: "#586377", border: "none", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, padding: "9px 18px", borderRadius: 11, cursor: "pointer" }}>
                 إلغاء التعديل
               </button>
             )}
           </div>
 
-          <form onSubmit={handleSaveProduct} className="mt-7">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <form onSubmit={handleSaveProduct} style={{ marginTop: 22 }}>
+            <div className="gx-form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
               <InputField label="اسم المنتج بالعربية" value={form.product_name_ar} onChange={(value) => updateForm("product_name_ar", value)} placeholder="مثال: قماشات فرامل" />
               <InputField label="اسم المنتج بالإنجليزية" value={form.product_name_en} onChange={(value) => updateForm("product_name_en", value)} placeholder="Brake Pads" ltr />
               <InputField label="رقم الصنف" value={form.product_number} onChange={(value) => updateForm("product_number", value)} placeholder="مثال: 123456" ltr required />
@@ -1020,47 +987,37 @@ console.log("3", ids);
             </div>
 
             {editingProductId ? (
-              <p className="mt-4 text-sm text-gray-500">
-                الباركود التلقائي لهذا المنتج: <span className="font-bold text-blue-900" dir="ltr">{products.find((p) => p.id === editingProductId)?.barcode || "-"}</span>
+              <p style={{ marginTop: 16, fontSize: 13.5, color: "#586377" }}>
+                الباركود التلقائي لهذا المنتج: <span style={{ fontWeight: 700, color: "#16407F" }} dir="ltr">{products.find((p) => p.id === editingProductId)?.barcode || "-"}</span>
                 {" "}(لا يمكن تعديله)
               </p>
             ) : (
-              <p className="mt-4 text-sm text-gray-500">
+              <p style={{ marginTop: 16, fontSize: 13.5, color: "#586377" }}>
                 💡 الباركود سيتولد تلقائياً بعد إنشاء المنتج، ولا حاجة لإدخاله يدوياً.
               </p>
             )}
 
-            <div className="mt-6">
-              <label className="mb-3 block text-sm font-bold text-gray-700">صورة المنتج</label>
-
+            <div style={{ marginTop: 22 }}>
+              <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 12 }}>صورة المنتج</label>
               {!productImagePreview ? (
-                <label className="flex min-h-[180px] w-full cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-blue-300 bg-blue-50 transition hover:bg-blue-100">
-                  <div className="p-6 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-3xl font-bold text-white" style={{ backgroundColor: "#1d4ed8" }}>+</div>
-                    <p className="mt-4 font-bold text-blue-900">اختر صورة المنتج</p>
-                    <p className="mt-2 text-sm text-gray-500">JPG أو PNG وبحجم أقصى 5 ميجابايت</p>
+                <label style={{ display: "flex", minHeight: 170, width: "100%", cursor: "pointer", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 18, border: "2px dashed #C4952E", background: "#FBF3DC" }}>
+                  <div style={{ padding: 24, textAlign: "center" }}>
+                    <div style={{ margin: "0 auto", display: "flex", height: 52, width: 52, alignItems: "center", justifyContent: "center", borderRadius: 14, fontSize: 28, fontWeight: 700, color: "#fff", background: "#16407F" }}>+</div>
+                    <p style={{ marginTop: 14, fontWeight: 700, color: "#0E2C5C" }}>اختر صورة المنتج</p>
+                    <p style={{ marginTop: 6, fontSize: 13.5, color: "#586377" }}>JPG أو PNG وبحجم أقصى 5 ميجابايت</p>
                   </div>
-
-                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
                 </label>
               ) : (
-                <div className="rounded-3xl border border-blue-100 bg-slate-50 p-5">
-                  <div className="flex flex-col items-center gap-5 md:flex-row">
-                    <div className="h-40 w-40 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                      <img src={productImagePreview} alt="معاينة صورة المنتج" className="h-full w-full object-contain" />
+                <div style={{ borderRadius: 18, border: "1px solid rgba(18,44,92,0.1)", background: "#F5F2EC", padding: 20 }}>
+                  <div className="gx-imgrow" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 20 }}>
+                    <div style={{ height: 150, width: 150, overflow: "hidden", borderRadius: 16, border: "1px solid rgba(18,44,92,0.15)", background: "#fff", flexShrink: 0 }}>
+                      <img src={productImagePreview} alt="معاينة صورة المنتج" style={{ height: "100%", width: "100%", objectFit: "contain" }} />
                     </div>
-
-                    <div className="flex-1">
-                      <p className="font-bold text-blue-900">تم اختيار الصورة</p>
-                      <p className="mt-2 break-all text-gray-500" dir="ltr">{productImage?.name || keepOldImageUrl || ""}</p>
-                      <button
-                        type="button"
-                        onClick={removeSelectedImage}
-                        style={{ backgroundColor: "#dc2626" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#b91c1c")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#dc2626")}
-                        className="mt-4 rounded-2xl px-5 py-3 font-bold text-white shadow-lg"
-                      >
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: 700, color: "#0E2C5C", margin: 0 }}>تم اختيار الصورة</p>
+                      <p style={{ marginTop: 8, wordBreak: "break-all", color: "#586377" }} dir="ltr">{productImage?.name || keepOldImageUrl || ""}</p>
+                      <button type="button" onClick={removeSelectedImage} style={{ marginTop: 14, background: "#C0392B", color: "#fff", border: "none", fontFamily: "inherit", fontWeight: 700, padding: "10px 18px", borderRadius: 12, cursor: "pointer" }}>
                         حذف الصورة واختيار غيرها
                       </button>
                     </div>
@@ -1069,295 +1026,150 @@ console.log("3", ids);
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={isSaving}
-              style={{ backgroundColor: isSaving ? "#9ca3af" : "#16a34a" }}
-              onMouseEnter={(e) => {
-                if (!isSaving) e.currentTarget.style.backgroundColor = "#15803d";
-              }}
-              onMouseLeave={(e) => {
-                if (!isSaving) e.currentTarget.style.backgroundColor = "#16a34a";
-              }}
-              className="mt-6 w-full rounded-2xl px-10 py-4 font-bold text-white shadow-lg md:w-auto"
-            >
+            <button type="submit" disabled={isSaving} style={{ marginTop: 22, background: isSaving ? "#9AA3B5" : "#1F8A5B", color: "#fff", border: "none", fontFamily: "inherit", fontWeight: 700, fontSize: 15, padding: "14px 40px", borderRadius: 12, cursor: isSaving ? "not-allowed" : "pointer" }}>
               {isSaving ? "جاري الحفظ..." : editingProductId ? "حفظ التعديل" : "إضافة المنتج"}
             </button>
           </form>
         </section>
 
-        <section className="rounded-[2rem] bg-white p-6 shadow-xl md:p-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">المنتجات</h2>
-              <p className="mt-2 text-gray-500">عدد المنتجات: {filteredProducts.length} من {products.length}</p>
+        {/* ============== قسم المنتجات (الجدول) ============== */}
+        <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "26px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <h2 style={{ fontSize: 21, fontWeight: 700, margin: 0, color: "#0E2C5C" }}>المنتجات</h2>
+                <p style={{ fontSize: 14.5, color: "#586377", margin: "4px 0 0" }}>عدد المنتجات: {filteredProducts.length} من {products.length}</p>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="بحث بالاسم أو رقم الصنف أو الباركود أو رقم المرجع"
-                className="min-w-[280px] rounded-2xl border border-gray-300 bg-white px-4 py-3 text-slate-900 outline-none focus:ring-2 focus:ring-blue-600"
-              />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "stretch" }}>
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="بحث بالاسم أو رقم الصنف أو الباركود أو رقم المرجع" className="gx-in" style={{ flex: "1 1 260px", minWidth: 240, borderRadius: 12, border: "1px solid rgba(18,44,92,0.18)", background: "#FFFFFF", padding: "11px 14px", fontFamily: "inherit", fontSize: 14.5, color: "#0E2C5C" }} />
 
-              <label
-                style={{ backgroundColor: isImporting ? "#9ca3af" : "#0891b2" }}
-                onMouseEnter={(e) => {
-                  if (!isImporting) e.currentTarget.style.backgroundColor = "#0e7490";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isImporting) e.currentTarget.style.backgroundColor = "#0891b2";
-                }}
-                className="cursor-pointer rounded-2xl px-6 py-3 font-bold text-white shadow-lg text-center"
-              >
+              <label title="يرفع صوراً للأصناف التي لا تملك صورة فقط. الأصناف التي لها صورة محمية ولن تُستبدل." style={{ cursor: "pointer", borderRadius: 12, background: isImportingImages ? "#9AA3B5" : "rgba(31,138,91,0.12)", color: isImportingImages ? "#fff" : "#1F8A5B", border: "1px solid rgba(31,138,91,0.3)", padding: "11px 18px", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, textAlign: "center" }}>
+                {isImportingImages && importingImagesMode === "add" ? `جاري الرفع... (${imageImportProgress.done}/${imageImportProgress.total})` : "رفع صور (بدون صورة)"}
+                <input type="file" accept="image/*" multiple onChange={(e) => handleBulkImageImport(e, "add")} disabled={isImportingImages} style={{ display: "none" }} />
+              </label>
+
+              <label title="يستبدل صور الأصناف التي تملك صورة بالفعل. الأصناف بدون صورة تُتخطّى ولا تتغيّر." style={{ cursor: "pointer", borderRadius: 12, background: isImportingImages ? "#9AA3B5" : "rgba(122,64,158,0.12)", color: isImportingImages ? "#fff" : "#7A409E", border: "1px solid rgba(122,64,158,0.3)", padding: "11px 18px", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, textAlign: "center" }}>
+                {isImportingImages && importingImagesMode === "replace" ? `جاري الاستبدال... (${imageImportProgress.done}/${imageImportProgress.total})` : "استبدال صور (لها صورة)"}
+                <input type="file" accept="image/*" multiple onChange={(e) => handleBulkImageImport(e, "replace")} disabled={isImportingImages} style={{ display: "none" }} />
+              </label>
+
+              <label style={{ cursor: "pointer", borderRadius: 12, background: isImporting ? "#9AA3B5" : "rgba(196,149,46,0.16)", color: isImporting ? "#fff" : "#8F6819", border: "1px solid rgba(196,149,46,0.35)", padding: "11px 18px", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, textAlign: "center" }}>
                 {isImporting ? "جاري الاستيراد..." : "استيراد من إكسل"}
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleImportExcel}
-                  disabled={isImporting}
-                  className="hidden"
-                />
+                <input type="file" accept=".xlsx,.xls" onChange={handleImportExcel} disabled={isImporting} style={{ display: "none" }} />
               </label>
 
-              {/* زر (1) الاستبدال: يعمل فقط للأصناف التي تملك صورة سابقة */}
-              <label
-                title="يستبدل صور الأصناف التي تملك صورة بالفعل. الأصناف بدون صورة تُتخطّى ولا تتغيّر."
-                style={{ backgroundColor: isImportingImages ? "#9ca3af" : "#7c3aed" }}
-                onMouseEnter={(e) => {
-                  if (!isImportingImages) e.currentTarget.style.backgroundColor = "#6d28d9";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isImportingImages) e.currentTarget.style.backgroundColor = "#7c3aed";
-                }}
-                className="cursor-pointer rounded-2xl px-6 py-3 font-bold text-white shadow-lg text-center"
-              >
-                {isImportingImages && importingImagesMode === "replace"
-                  ? `جاري الاستبدال... (${imageImportProgress.done}/${imageImportProgress.total})`
-                  : "استبدال صور (لها صورة)"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handleBulkImageImport(e, "replace")}
-                  disabled={isImportingImages}
-                  className="hidden"
-                />
-              </label>
-
-              {/* زر (2) رفع الجديد: يعمل فقط للأصناف التي لا تملك صورة (يحمي الموجودة) */}
-              <label
-                title="يرفع صوراً للأصناف التي لا تملك صورة فقط. الأصناف التي لها صورة محمية ولن تُستبدل."
-                style={{ backgroundColor: isImportingImages ? "#9ca3af" : "#0d9488" }}
-                onMouseEnter={(e) => {
-                  if (!isImportingImages) e.currentTarget.style.backgroundColor = "#0f766e";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isImportingImages) e.currentTarget.style.backgroundColor = "#0d9488";
-                }}
-                className="cursor-pointer rounded-2xl px-6 py-3 font-bold text-white shadow-lg text-center"
-              >
-                {isImportingImages && importingImagesMode === "add"
-                  ? `جاري الرفع... (${imageImportProgress.done}/${imageImportProgress.total})`
-                  : "رفع صور (بدون صورة)"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handleBulkImageImport(e, "add")}
-                  disabled={isImportingImages}
-                  className="hidden"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={loadProducts}
-                disabled={isLoading}
-                style={{ backgroundColor: isLoading ? "#9ca3af" : "#1d4ed8" }}
-                onMouseEnter={(e) => {
-                  if (!isLoading) e.currentTarget.style.backgroundColor = "#1e40af";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isLoading) e.currentTarget.style.backgroundColor = "#1d4ed8";
-                }}
-                className="rounded-2xl px-6 py-3 font-bold text-white shadow-lg"
-              >
+              <button type="button" onClick={loadProducts} disabled={isLoading} style={{ borderRadius: 12, background: isLoading ? "#9AA3B5" : "#16407F", color: "#fff", border: "none", padding: "11px 20px", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, cursor: isLoading ? "not-allowed" : "pointer" }}>
                 {isLoading ? "جاري التحديث..." : "استعلام المنتجات"}
               </button>
             </div>
           </div>
 
           {imageImportSummary && (
-            <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50 p-5">
-              <p className="font-bold text-purple-900">
+            <div style={{ marginTop: 20, borderRadius: 16, border: "1px solid rgba(122,64,158,0.25)", background: "rgba(122,64,158,0.06)", padding: 20 }}>
+              <p style={{ fontWeight: 700, color: "#7A409E", margin: 0 }}>
                 {lastImageImportMode === "add" ? "نتيجة رفع الصور الجديدة" : "نتيجة استبدال الصور"}: {imageImportSummary.success} من {imageImportSummary.total} تم بنجاح
               </p>
-
               {imageImportSummary.failed.length > 0 && (
-                <div className="mt-3 space-y-1">
-                  <p className="text-sm font-bold text-red-700">صور لم تنجح:</p>
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: 13.5, fontWeight: 700, color: "#C0392B", margin: "0 0 4px" }}>صور لم تنجح:</p>
                   {imageImportSummary.failed.map((f, idx) => (
-                    <p key={`${f.product_number}-${idx}`} className="text-sm text-red-600">
-                      رقم الصنف: {f.product_number} — {f.message}
-                    </p>
+                    <p key={`${f.product_number}-${idx}`} style={{ fontSize: 13.5, color: "#C0392B", margin: 0 }}>رقم الصنف: {f.product_number} — {f.message}</p>
                   ))}
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={() => setImageImportSummary(null)}
-                className="mt-3 text-sm font-bold text-purple-700 hover:underline"
-              >
-                إغلاق
-              </button>
+              <button type="button" onClick={() => setImageImportSummary(null)} style={{ marginTop: 12, background: "none", border: "none", fontSize: 13.5, fontWeight: 700, color: "#7A409E", cursor: "pointer" }}>إغلاق</button>
             </div>
           )}
 
           {importSummary && (
-            <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-5">
-              <p className="font-bold text-blue-900">
-                نتيجة الاستيراد: {importSummary.success} من {importSummary.total} تم بنجاح
-              </p>
-
+            <div style={{ marginTop: 20, borderRadius: 16, border: "1px solid #dfe6f2", background: "rgba(22,64,127,0.05)", padding: 20 }}>
+              <p style={{ fontWeight: 700, color: "#16407F", margin: 0 }}>نتيجة الاستيراد: {importSummary.success} من {importSummary.total} تم بنجاح</p>
               {importSummary.failed.length > 0 && (
-                <div className="mt-3 space-y-1">
-                  <p className="text-sm font-bold text-red-700">صفوف لم تنجح:</p>
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: 13.5, fontWeight: 700, color: "#C0392B", margin: "0 0 4px" }}>صفوف لم تنجح:</p>
                   {importSummary.failed.map((f) => (
-                    <p key={f.row} className="text-sm text-red-600">
-                      صف {f.row} (رقم الصنف: {f.product_number}) — {f.message}
-                    </p>
+                    <p key={f.row} style={{ fontSize: 13.5, color: "#C0392B", margin: 0 }}>صف {f.row} (رقم الصنف: {f.product_number}) — {f.message}</p>
                   ))}
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={() => setImportSummary(null)}
-                className="mt-3 text-sm font-bold text-blue-700 hover:underline"
-              >
-                إغلاق
-              </button>
+              <button type="button" onClick={() => setImportSummary(null)} style={{ marginTop: 12, background: "none", border: "none", fontSize: 13.5, fontWeight: 700, color: "#16407F", cursor: "pointer" }}>إغلاق</button>
             </div>
           )}
 
           {isLoading ? (
-            <div className="py-16 text-center text-gray-500">
-              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700" />
+            <div style={{ padding: "64px 0", textAlign: "center", color: "#7A8498" }}>
+              <div className="gx-spin" style={{ margin: "0 auto 16px", height: 40, width: 40, borderRadius: "50%", border: "4px solid #dfe6f2", borderTopColor: "#16407F" }} />
               جاري تحميل المنتجات...
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="mt-7 rounded-3xl bg-slate-50 p-12 text-center text-gray-500">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-200 text-3xl">📦</div>
+            <div style={{ marginTop: 26, borderRadius: 18, background: "rgba(18,44,92,0.03)", padding: 48, textAlign: "center", color: "#7A8498" }}>
+              <div style={{ margin: "0 auto 16px", display: "flex", height: 64, width: 64, alignItems: "center", justifyContent: "center", borderRadius: 16, background: "rgba(18,44,92,0.06)", fontSize: 28 }}>📦</div>
               {search ? "لا توجد منتجات تطابق البحث" : "لا توجد منتجات بعد — أضف أول منتج من النموذج فوق"}
             </div>
           ) : (
-            <div className="mt-7 overflow-x-auto rounded-2xl border border-slate-100">
-              <table className="w-full border-separate border-spacing-y-3 text-right" style={{ tableLayout: "fixed" }}>
+            <div className="gx-tablewrap" style={{ marginTop: 26, overflowX: "auto", borderRadius: 16, border: "1px solid rgba(18,44,92,0.08)" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "right", tableLayout: "fixed" }}>
                 <thead>
-                  <tr className="text-sm text-blue-900 sticky top-0">
-                    <th className="px-2" style={{ width: "70px" }}>الصورة</th>
-                    <th className="px-2" style={{ width: "85px" }}>رقم الصنف</th>
-                    <th className="px-2" style={{ width: "95px" }}>رقم المرجع</th>
-                    <th className="px-2" style={{ width: "150px" }}>اسم المنتج</th>
-                    <th className="px-2" style={{ width: "120px" }}>الاسم الإنجليزي</th>
-                    <th className="px-2" style={{ width: "120px" }}>الباركود الثابت</th>
-                    <th className="px-2" style={{ width: "55px" }}>التعبئة</th>
-                    <th className="px-2" style={{ width: "55px" }}>النقاط</th>
-                    <th className="px-2" style={{ width: "70px" }}>الحالة</th>
-                    <th className="px-2" style={{ width: "175px" }}>إنشاء وطباعة</th>
-                    <th className="px-2" style={{ width: "150px" }}>تحكم</th>
+                  <tr style={{ fontSize: 13, color: "#586377", background: "rgba(18,44,92,0.04)" }}>
+                    <th style={{ padding: "12px 8px", width: 70, fontWeight: 600 }}>الصورة</th>
+                    <th style={{ padding: "12px 8px", width: 85, fontWeight: 600 }}>رقم الصنف</th>
+                    <th style={{ padding: "12px 8px", width: 95, fontWeight: 600 }}>رقم المرجع</th>
+                    <th style={{ padding: "12px 8px", width: 150, fontWeight: 600 }}>اسم المنتج</th>
+                    <th style={{ padding: "12px 8px", width: 120, fontWeight: 600 }}>الاسم الإنجليزي</th>
+                    <th style={{ padding: "12px 8px", width: 120, fontWeight: 600 }}>الباركود الثابت</th>
+                    <th style={{ padding: "12px 8px", width: 55, fontWeight: 600, textAlign: "center" }}>التعبئة</th>
+                    <th style={{ padding: "12px 8px", width: 55, fontWeight: 600, textAlign: "center" }}>النقاط</th>
+                    <th style={{ padding: "12px 8px", width: 70, fontWeight: 600, textAlign: "center" }}>الحالة</th>
+                    <th style={{ padding: "12px 8px", width: 160, fontWeight: 600, textAlign: "center" }}>إنشاء وطباعة</th>
+                    <th style={{ padding: "12px 8px", width: 130, fontWeight: 600, textAlign: "center" }}>تحكم</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredProducts.map((product) => {
                     const isGenerating = generatingProductId === product.id;
-
                     return (
-                      <tr key={product.id} className="bg-slate-50 transition hover:bg-blue-50">
-                        <td className="rounded-r-2xl p-2 align-top">
+                      <tr key={product.id} className="gx-row" style={{ background: "#FFFFFF" }}>
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
                           {product.product_image_url ? (
-                            <button
-                              type="button"
-                              onClick={() => setZoomedImage(product.product_image_url)}
-                              className="h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:ring-2 hover:ring-blue-500"
-                              title="اضغط لتكبير الصورة"
-                            >
-                              <img src={product.product_image_url} alt={product.product_name_ar || product.product_number} className="h-full w-full object-contain" />
+                            <button type="button" onClick={() => setZoomedImage(product.product_image_url)} title="اضغط لتكبير الصورة" style={{ height: 48, width: 48, overflow: "hidden", borderRadius: 12, border: "1px solid rgba(18,44,92,0.15)", background: "#fff", cursor: "pointer", padding: 0 }}>
+                              <img src={product.product_image_url} alt={product.product_name_ar || product.product_number} style={{ height: "100%", width: "100%", objectFit: "contain" }} />
                             </button>
                           ) : (
-                            <div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-slate-200 text-center text-gray-500">
-                              <span className="text-lg">🖼️</span>
-                            </div>
+                            <div style={{ display: "flex", height: 48, width: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, background: "rgba(18,44,92,0.06)", fontSize: 18 }}>🖼️</div>
                           )}
                         </td>
-
-                        <td className="p-2 align-top text-sm font-bold text-blue-900 break-words" dir="ltr">{product.product_number}</td>
-                        <td className="p-2 align-top text-sm text-gray-600 break-words" dir="ltr">{product.reference_number || "-"}</td>
-                        <td className="p-2 align-top text-sm font-bold text-gray-800 break-words">{product.product_name_ar || "-"}</td>
-                        <td className="p-2 align-top text-sm text-gray-600 break-words" dir="ltr">{product.product_name_en || "-"}</td>
-                        <td className="p-2 align-top text-sm font-bold text-blue-900 break-words" dir="ltr">
-                          {product.ean13_barcode || <span className="font-normal text-gray-400">لم يُولَّد بعد</span>}
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", fontSize: 13, fontWeight: 700, color: "#16407F", wordBreak: "break-word" }} dir="ltr">{product.product_number}</td>
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", fontSize: 13, color: "#586377", wordBreak: "break-word" }} dir="ltr">{product.reference_number || "-"}</td>
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", fontSize: 13, fontWeight: 700, color: "#33405A", wordBreak: "break-word" }}>{product.product_name_ar || "-"}</td>
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", fontSize: 13, color: "#586377", wordBreak: "break-word" }} dir="ltr">{product.product_name_en || "-"}</td>
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", fontSize: 13, fontWeight: 700, color: "#16407F", wordBreak: "break-word" }} dir="ltr">
+                          {product.ean13_barcode || <span style={{ fontWeight: 400, color: "#9AA3B5" }}>لم يُولَّد بعد</span>}
                         </td>
-                        <td className="p-2 align-top text-center text-sm">{product.packing_qty}</td>
-                        <td className="p-2 align-top text-center text-sm"><span className="font-bold text-blue-800">{product.points}</span></td>
-
-                        <td className="p-2 align-top">
-                          <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-1 text-xs font-bold ${product.is_active ? "border-green-100 bg-green-50 text-green-700" : "border-red-100 bg-red-50 text-red-700"}`}>
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", textAlign: "center", fontSize: 13 }}>{product.packing_qty}</td>
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", textAlign: "center", fontSize: 13 }}><span style={{ fontWeight: 700, color: "#16407F" }}>{product.points}</span></td>
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
+                          <span style={{ display: "inline-block", whiteSpace: "nowrap", borderRadius: 100, border: "1px solid", padding: "3px 10px", fontSize: 11.5, fontWeight: 700, background: product.is_active ? "rgba(31,138,91,0.1)" : "rgba(192,57,43,0.08)", color: product.is_active ? "#1F8A5B" : "#C0392B", borderColor: product.is_active ? "rgba(31,138,91,0.3)" : "rgba(192,57,43,0.25)" }}>
                             {product.is_active ? "فعال" : "موقوف"}
                           </span>
                         </td>
-
-                        <td className="p-2 align-top">
-                          <button
-                            type="button"
-                            disabled={isPrintingJob || !product.is_active}
-                            onClick={() => openPrintModal(product)}
-                            style={{ backgroundColor: "#15803d" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#166534")}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#15803d")}
-                            className="w-full whitespace-nowrap rounded-xl px-2 py-2 text-xs font-bold text-white shadow-lg disabled:bg-gray-500"
-                          >
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
+                          <button type="button" disabled={isPrintingJob || !product.is_active} onClick={() => openPrintModal(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 10, padding: "8px 8px", fontSize: 12, fontWeight: 700, color: "#fff", border: "none", background: (isPrintingJob || !product.is_active) ? "#C6CAD3" : "#1F8A5B", cursor: (isPrintingJob || !product.is_active) ? "not-allowed" : "pointer" }}>
                             إنشاء وطباعة
                           </button>
                         </td>
-
-                        <td className="rounded-l-2xl p-2 align-top">
-                          <div className="flex flex-col gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleEditProduct(product)}
-                              style={{ backgroundColor: "#f97316" }}
-                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ea580c")}
-                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f97316")}
-                              className="rounded-xl px-2 py-1.5 text-xs font-bold text-white shadow-lg"
-                            >
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <button type="button" onClick={() => handleEditProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#8F6819", background: "rgba(196,149,46,0.16)", border: "none", cursor: "pointer" }}>
                               تعديل
                             </button>
-
                             {product.is_active ? (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteProduct(product)}
-                                style={{ backgroundColor: "#dc2626" }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#b91c1c")}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#dc2626")}
-                                className="rounded-xl px-2 py-1.5 text-xs font-bold text-white shadow-lg"
-                              >
+                              <button type="button" onClick={() => handleDeleteProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#C0392B", background: "rgba(192,57,43,0.1)", border: "none", cursor: "pointer" }}>
                                 حذف
                               </button>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleRestoreProduct(product)}
-                                style={{ backgroundColor: "#16a34a" }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#15803d")}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#16a34a")}
-                                className="rounded-xl px-2 py-1.5 text-xs font-bold text-white shadow-lg"
-                              >
+                              <button type="button" onClick={() => handleRestoreProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#1F8A5B", background: "rgba(31,138,91,0.12)", border: "none", cursor: "pointer" }}>
                                 تفعيل
                               </button>
                             )}
@@ -1371,48 +1183,22 @@ console.log("3", ids);
             </div>
           )}
         </section>
-      </div>
+      </main>
 
+      {/* ============== نافذة إنشاء QR وطباعة ============== */}
       {printJob && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(0,0,0,0.6)",
-            padding: "16px",
-          }}
-        >
-          <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
-            <h2 className="text-2xl font-black text-blue-950">إنشاء QR وطباعة الليبل</h2>
-            <p className="mt-2 text-gray-500">المنتج: {printJob.product.product_number}</p>
-
-            <div className="mt-6 space-y-4">
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(14,44,92,0.55)", padding: 16 }}>
+          <div style={{ width: "100%", maxWidth: 520, borderRadius: 24, background: "#FFFDF8", padding: 26, boxShadow: "0 30px 70px -30px rgba(0,0,0,0.5)" }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0E2C5C", margin: 0 }}>إنشاء QR وطباعة الليبل</h2>
+            <p style={{ marginTop: 8, color: "#586377" }}>المنتج: {printJob.product.product_number}</p>
+            <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <label className="mb-2 block text-sm font-bold text-gray-700">كمية الليبلات / QR</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={printJob.quantity}
-                  onChange={(event) => setPrintJob((previous) => (previous ? { ...previous, quantity: event.target.value } : previous))}
-                  className="w-full rounded-2xl border border-gray-300 bg-yellow-50 px-4 py-3 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600"
-                  dir="ltr"
-                />
+                <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>كمية الليبلات / QR</label>
+                <input type="number" min="1" value={printJob.quantity} onChange={(event) => setPrintJob((previous) => (previous ? { ...previous, quantity: event.target.value } : previous))} dir="ltr" className="gx-in" style={{ width: "100%", borderRadius: 12, border: "1px solid rgba(18,44,92,0.18)", background: "#FBF3DC", padding: "12px 14px", fontFamily: "inherit", fontSize: 15, fontWeight: 700, color: "#0E2C5C" }} />
               </div>
-
               <div>
-                <label className="mb-2 block text-sm font-bold text-gray-700">قالب الليبل</label>
-                <select
-                  value={printJob.templateId}
-                  onChange={(event) => setPrintJob((previous) => (previous ? { ...previous, templateId: event.target.value } : previous))}
-                  className="w-full rounded-2xl border border-gray-300 bg-blue-50 px-4 py-3 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600"
-                >
+                <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>قالب الليبل</label>
+                <select value={printJob.templateId} onChange={(event) => setPrintJob((previous) => (previous ? { ...previous, templateId: event.target.value } : previous))} className="gx-in" style={{ width: "100%", borderRadius: 12, border: "1px solid rgba(18,44,92,0.18)", background: "#F5F2EC", padding: "12px 14px", fontFamily: "inherit", fontSize: 15, fontWeight: 700, color: "#0E2C5C" }}>
                   <option value="">اختر قالب الليبل</option>
                   {templates.map((template) => (
                     <option key={template.id} value={template.id}>
@@ -1422,33 +1208,11 @@ console.log("3", ids);
                 </select>
               </div>
             </div>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleGenerateAndPrint}
-                disabled={isPrintingJob}
-                style={{ backgroundColor: isPrintingJob ? "#9ca3af" : "#16a34a" }}
-                onMouseEnter={(e) => {
-                  if (!isPrintingJob) e.currentTarget.style.backgroundColor = "#15803d";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isPrintingJob) e.currentTarget.style.backgroundColor = "#16a34a";
-                }}
-                className="flex-1 rounded-2xl px-6 py-4 font-bold text-white shadow-lg"
-              >
+            <div style={{ marginTop: 22, display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <button type="button" onClick={handleGenerateAndPrint} disabled={isPrintingJob} style={{ flex: 1, borderRadius: 12, background: isPrintingJob ? "#9AA3B5" : "#1F8A5B", padding: "14px", fontFamily: "inherit", fontWeight: 700, color: "#fff", border: "none", cursor: isPrintingJob ? "not-allowed" : "pointer" }}>
                 {isPrintingJob ? "جاري الإنشاء..." : "إنشاء وفتح الطباعة"}
               </button>
-
-              <button
-                type="button"
-                onClick={() => setPrintJob(null)}
-                disabled={isPrintingJob}
-                style={{ backgroundColor: "#dc2626" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#b91c1c")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#dc2626")}
-                className="rounded-2xl px-6 py-4 font-bold text-white shadow-lg"
-              >
+              <button type="button" onClick={() => setPrintJob(null)} disabled={isPrintingJob} style={{ borderRadius: 12, background: "#E4E1DA", padding: "14px 26px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: isPrintingJob ? "not-allowed" : "pointer" }}>
                 إلغاء
               </button>
             </div>
@@ -1456,120 +1220,54 @@ console.log("3", ids);
         </div>
       )}
 
+      {/* ============== نافذة تكبير الصورة ============== */}
       {zoomedImage && (
-        <div
-          onClick={() => setZoomedImage(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(0,0,0,0.8)",
-            padding: "24px",
-            cursor: "zoom-out",
-          }}
-        >
-          <img
-            src={zoomedImage}
-            alt="صورة المنتج مكبّرة"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: "90vw",
-              maxHeight: "90vh",
-              objectFit: "contain",
-              borderRadius: "16px",
-              backgroundColor: "#fff",
-              padding: "12px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => setZoomedImage(null)}
-            style={{
-              position: "fixed",
-              top: "20px",
-              left: "20px",
-              width: "44px",
-              height: "44px",
-              borderRadius: "9999px",
-              backgroundColor: "#fff",
-              color: "#0f172a",
-              fontSize: "22px",
-              fontWeight: "bold",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            }}
-            aria-label="إغلاق"
-          >
-            ✕
-          </button>
+        <div onClick={() => setZoomedImage(null)} style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.8)", padding: 24, cursor: "zoom-out" }}>
+          <img src={zoomedImage} alt="صورة المنتج مكبّرة" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 16, backgroundColor: "#fff", padding: 12, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} />
+          <button type="button" onClick={() => setZoomedImage(null)} aria-label="إغلاق" style={{ position: "fixed", top: 20, left: 20, width: 44, height: 44, borderRadius: 9999, backgroundColor: "#fff", color: "#0E2C5C", fontSize: 22, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>✕</button>
         </div>
       )}
 
+      {/* ============== نافذة تأكيد الحذف ============== */}
       {deleteConfirmProduct && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(0,0,0,0.6)",
-            padding: "16px",
-          }}
-        >
-          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100 text-3xl">🗑️</div>
-
-            <h2 className="mt-5 text-xl font-black text-slate-900">تأكيد الحذف</h2>
-
-            <p className="mt-3 text-gray-500">
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(14,44,92,0.55)", padding: 16 }}>
+          <div style={{ width: "100%", maxWidth: 440, borderRadius: 24, background: "#FFFDF8", padding: 26, boxShadow: "0 30px 70px -30px rgba(0,0,0,0.5)", textAlign: "center" }}>
+            <div style={{ margin: "0 auto", display: "flex", height: 64, width: 64, alignItems: "center", justifyContent: "center", borderRadius: 16, background: "rgba(192,57,43,0.1)", fontSize: 28 }}>🗑️</div>
+            <h2 style={{ marginTop: 20, fontSize: 20, fontWeight: 800, color: "#0E2C5C" }}>تأكيد الحذف</h2>
+            <p style={{ marginTop: 12, color: "#586377" }}>
               هل تريد فعلاً حذف/إيقاف المنتج رقم{" "}
-              <span className="font-bold text-slate-900" dir="ltr">
-                {deleteConfirmProduct.product_number}
-              </span>
+              <span style={{ fontWeight: 700, color: "#0E2C5C" }} dir="ltr">{deleteConfirmProduct.product_number}</span>
               {" "}({deleteConfirmProduct.product_name_ar || deleteConfirmProduct.product_name_en})؟
             </p>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={confirmDeleteProduct}
-                disabled={isDeleting}
-                style={{ backgroundColor: isDeleting ? "#9ca3af" : "#dc2626" }}
-                onMouseEnter={(e) => {
-                  if (!isDeleting) e.currentTarget.style.backgroundColor = "#b91c1c";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isDeleting) e.currentTarget.style.backgroundColor = "#dc2626";
-                }}
-                className="flex-1 rounded-2xl px-6 py-4 font-bold text-white shadow-lg"
-              >
+            <div style={{ marginTop: 22, display: "flex", gap: 12 }}>
+              <button type="button" onClick={confirmDeleteProduct} disabled={isDeleting} style={{ flex: 1, borderRadius: 12, background: isDeleting ? "#9AA3B5" : "#C0392B", padding: "13px", fontFamily: "inherit", fontWeight: 700, color: "#fff", border: "none", cursor: isDeleting ? "not-allowed" : "pointer" }}>
                 {isDeleting ? "جاري الحذف..." : "نعم، احذف"}
               </button>
-
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmProduct(null)}
-                disabled={isDeleting}
-                style={{ backgroundColor: "#9ca3af" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#6b7280")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#9ca3af")}
-                className="flex-1 rounded-2xl px-6 py-4 font-bold text-white shadow-lg"
-              >
+              <button type="button" onClick={() => setDeleteConfirmProduct(null)} disabled={isDeleting} style={{ flex: 1, borderRadius: 12, background: "#E4E1DA", padding: "13px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: isDeleting ? "not-allowed" : "pointer" }}>
                 إلغاء
               </button>
             </div>
           </div>
         </div>
       )}
-    </main>
+
+      <style>{`
+        .gx-in:focus { outline: none; border-color: #16407F; box-shadow: 0 0 0 3px rgba(22,64,127,0.12); }
+        .gx-in::placeholder { color: #9AA3B5; }
+        .gx-row:hover { background: rgba(18,44,92,0.02) !important; }
+        .gx-spin { animation: gxSpin 0.8s linear infinite; }
+        @keyframes gxSpin { to { transform: rotate(360deg); } }
+        @media (max-width:980px){
+          .gx-kpis { grid-template-columns:1fr 1fr !important; }
+          .gx-form-grid { grid-template-columns:1fr 1fr !important; }
+          .gx-titlerow { flex-direction:column; }
+        }
+        @media (max-width:640px){
+          .gx-form-grid { grid-template-columns:1fr !important; }
+          .gx-imgrow { flex-direction:column !important; align-items:flex-start !important; }
+        }
+      `}</style>
+    </div>
   );
 }
 
@@ -1585,14 +1283,14 @@ function InputField({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  placeholder?: string;
   type?: string;
   ltr?: boolean;
   required?: boolean;
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-bold text-gray-700">{label}</label>
+      <label style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>{label}</label>
       <input
         type={type}
         required={required}
@@ -1600,7 +1298,8 @@ function InputField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         dir={ltr ? "ltr" : "rtl"}
-        className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-slate-900 outline-none focus:ring-2 focus:ring-blue-600"
+        className="gx-in"
+        style={{ width: "100%", fontFamily: "inherit", fontSize: 15, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: "#FFFFFF", color: "#0E2C5C" }}
       />
     </div>
   );
