@@ -42,35 +42,52 @@ export default function CustomerLoginCard() {
     setTransferRequestSent(false);
     setIsLoading(true);
 
-    const { data, error } = await supabase.rpc("login_customer", {
-      p_username: username.trim(),
-      p_password: password,
-      p_device_id: getDeviceId(),
-    });
+    try {
+      const { data, error } = await supabase.rpc("login_customer", {
+        p_username: username.trim(),
+        p_password: password,
+        p_device_id: getDeviceId(),
+      });
 
-    if (error) {
-      setMessage("حدث خطأ أثناء تسجيل الدخول");
-      setIsLoading(false);
-      return;
-    }
+      if (error) {
+        console.error("LOGIN CUSTOMER ERROR:", error);
 
-    if (!data?.success) {
-      setMessage(data?.message || "تعذر تسجيل الدخول");
+        setMessage(
+          `خطأ: ${error.message}${
+            error.code ? ` — الكود: ${error.code}` : ""
+          }`
+        );
 
-      if (data?.status === "device_mismatch" && data?.customer_id) {
-        setDeviceMismatchCustomerId(data.customer_id);
+        return;
       }
 
+      if (!data?.success) {
+        setMessage(data?.message || "تعذر تسجيل الدخول");
+
+        if (data?.status === "device_mismatch" && data?.customer_id) {
+          setDeviceMismatchCustomerId(data.customer_id);
+        }
+
+        return;
+      }
+
+      localStorage.setItem("galtex_customer_id", String(data.customer_id ?? ""));
+      localStorage.setItem("galtex_customer_number", String(data.customer_number || ""));
+      localStorage.setItem("galtex_customer_name", `${data.first_name} ${data.last_name}`);
+      localStorage.setItem("galtex_customer_points", String(data.points || 0));
+
+      router.push("/rewards");
+    } catch (err) {
+      console.error("UNEXPECTED CUSTOMER LOGIN ERROR:", err);
+
+      setMessage(
+        err instanceof Error
+          ? `خطأ غير متوقع: ${err.message}`
+          : "حدث خطأ غير متوقع"
+      );
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    localStorage.setItem("galtex_customer_id", data.customer_id);
-    localStorage.setItem("galtex_customer_number", String(data.customer_number || ""));
-    localStorage.setItem("galtex_customer_name", `${data.first_name} ${data.last_name}`);
-    localStorage.setItem("galtex_customer_points", String(data.points || 0));
-
-    router.push("/rewards");
   }
 
   async function requestDeviceTransfer() {
