@@ -1,23 +1,99 @@
 export default function RegisterSuccessPage() {
   return (
-    <main className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center">
-        <h1 className="text-4xl font-bold text-blue-900">GALTEX</h1>
-        <p className="text-3xl font-bold text-blue-700 mt-2">Rewards</p>
+    <main
+      dir="rtl"
+      style={{
+        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+        minHeight: "100vh",
+        background: "#F5F2EC",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "16px",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 448,
+          background: "#FFFDF8",
+          border: "1px solid rgba(18,44,92,0.1)",
+          borderRadius: 24,
+          boxShadow: "0 20px 60px rgba(14,44,92,0.10)",
+          padding: 32,
+          textAlign: "center",
+        }}
+      >
+        {/* الشعار */}
+        <img
+          src="/galtex-logo.png"
+          alt="GALTEX"
+          style={{ height: 46, width: "auto", display: "inline-block" }}
+        />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 9,
+            margin: "14px 0 0",
+          }}
+        >
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              background: "#C4952E",
+              transform: "rotate(45deg)",
+              display: "inline-block",
+            }}
+          />
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#C4952E" }}>
+            GALTEX Rewards
+          </span>
+        </div>
 
-        <div className="mt-8 bg-blue-50 rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-blue-700 mb-4">
+        {/* بطاقة الحالة */}
+        <div
+          style={{
+            marginTop: 28,
+            background: "#F5F2EC",
+            border: "1px solid rgba(18,44,92,0.1)",
+            borderRadius: 16,
+            padding: 24,
+          }}
+        >
+          <h2
+            style={{
+              fontSize: 19,
+              fontWeight: 700,
+              color: "#0E2C5C",
+              margin: "0 0 12px",
+            }}
+          >
             حسابك قيد المراجعة
           </h2>
-
-          <p className="text-gray-600 leading-8">
+          <p style={{ fontSize: 15, color: "#586377", lineHeight: 1.9, margin: 0 }}>
             تم استلام طلب التسجيل بنجاح، وسيتم تفعيل الحساب من قبل إدارة GALTEX.
           </p>
         </div>
 
+        {/* زر الرجوع */}
         <a
           href="/"
-          className="block w-full mt-6 bg-blue-700 text-white font-semibold py-3 rounded-xl"
+          style={{
+            display: "block",
+            width: "100%",
+            marginTop: 24,
+            background: "#16407F",
+            color: "#F5F2EC",
+            fontWeight: 700,
+            fontSize: 15.5,
+            padding: 14,
+            borderRadius: 13,
+            textDecoration: "none",
+            boxSizing: "border-box",
+          }}
         >
           العودة إلى تسجيل الدخول
         </a>

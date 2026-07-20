@@ -1,4 +1,4 @@
-    "use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -146,132 +146,184 @@ export default function CustomerRegisterCard() {
     setIsLoading(false);
   }
 
+  const fieldLabel: React.CSSProperties = {
+    display: "block",
+    fontSize: 13.5,
+    fontWeight: 600,
+    color: "#33405A",
+    marginBottom: 8,
+  };
+
+  const fieldInput: React.CSSProperties = {
+    width: "100%",
+    fontFamily: "inherit",
+    fontSize: 15,
+    color: "#0E2C5C",
+    background: "#FFFFFF",
+    border: "1px solid rgba(18,44,92,0.18)",
+    borderRadius: 12,
+    padding: "12px 16px",
+    outline: "none",
+  };
+
+  const fieldHint: React.CSSProperties = {
+    fontSize: 12,
+    color: "#9AA3B5",
+    margin: "8px 0 0",
+  };
+
   return (
     <div
-      className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8"
+      className="w-full max-w-md"
+      style={{
+        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+        background: "#FFFDF8",
+        border: "1px solid rgba(18,44,92,0.1)",
+        borderRadius: 24,
+        boxShadow: "0 20px 60px rgba(14,44,92,0.10)",
+        padding: 32,
+      }}
       dir="rtl"
     >
-      <div className="flex justify-start mb-4">
+      {/* زر اللغة (الوظيفة مؤجّلة — للتصميم فقط الآن) */}
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 18 }}>
         <button
           type="button"
-          className="text-sm font-medium text-blue-700 bg-blue-50 px-4 py-2 rounded-full"
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#16407F",
+            background: "#FFFFFF",
+            border: "1px solid rgba(18,44,92,0.14)",
+            padding: "7px 16px",
+            borderRadius: 999,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
         >
           English
         </button>
       </div>
 
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-blue-900 tracking-wide">
-          GALTEX
-        </h1>
-
-        <p className="text-3xl font-bold text-blue-700 mt-2">
-          Rewards
-        </p>
-
-        <p className="text-gray-500 mt-3">
+      {/* الشعار + العنوان */}
+      <div style={{ textAlign: "center", marginBottom: 28 }}>
+        <img
+          src="/galtex-logo.png"
+          alt="GALTEX"
+          style={{ height: 46, width: "auto", display: "inline-block" }}
+        />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 9,
+            margin: "14px 0 0",
+          }}
+        >
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              background: "#C4952E",
+              transform: "rotate(45deg)",
+              display: "inline-block",
+            }}
+          />
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#C4952E" }}>
+            GALTEX Rewards
+          </span>
+        </div>
+        <p style={{ fontSize: 15, color: "#586377", margin: "12px 0 0" }}>
           إنشاء حساب جديد
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            الاسم الأول
-          </label>
-
+          <label style={fieldLabel}>الاسم الأول</label>
           <input
             type="text"
             required
             value={firstName}
-            onChange={(event) =>
-              setFirstName(event.target.value)
-            }
+            onChange={(event) => setFirstName(event.target.value)}
             placeholder="أدخل الاسم الأول"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
+            style={fieldInput}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            الاسم الأخير
-          </label>
-
+          <label style={fieldLabel}>الاسم الأخير</label>
           <input
             type="text"
             required
             value={lastName}
-            onChange={(event) =>
-              setLastName(event.target.value)
-            }
+            onChange={(event) => setLastName(event.target.value)}
             placeholder="أدخل الاسم الأخير"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
+            style={fieldInput}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            المدينة
-          </label>
-
+          <label style={fieldLabel}>المدينة</label>
           <input
             type="text"
             required
             value={city}
-            onChange={(event) =>
-              setCity(event.target.value)
-            }
+            onChange={(event) => setCity(event.target.value)}
             placeholder="أدخل المدينة"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
+            style={fieldInput}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            الدولة
-          </label>
-
+          <label style={fieldLabel}>الدولة</label>
           <select
             value={country}
             onChange={handleCountryChange}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600 bg-white"
+            style={{ ...fieldInput, cursor: "pointer" }}
           >
-            <option value="SA">
-              🇸🇦 المملكة العربية السعودية
-            </option>
-
-            <option value="DE">
-              🇩🇪 ألمانيا
-            </option>
+            <option value="SA">🇸🇦 المملكة العربية السعودية</option>
+            <option value="DE">🇩🇪 ألمانيا</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            رقم الجوال
-          </label>
-
-          <div className="flex" dir="ltr">
-            <div className="flex items-center justify-center min-w-20 px-4 border border-r-0 border-gray-300 rounded-l-xl bg-gray-100 text-gray-700 font-semibold">
+          <label style={fieldLabel}>رقم الجوال</label>
+          <div style={{ display: "flex" }} dir="ltr">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 80,
+                padding: "0 16px",
+                border: "1px solid rgba(18,44,92,0.18)",
+                borderRight: "none",
+                borderRadius: "12px 0 0 12px",
+                background: "#F5F2EC",
+                color: "#33405A",
+                fontWeight: 600,
+                fontFamily: "'Space Grotesk', sans-serif",
+              }}
+            >
               {countryCode}
             </div>
-
             <input
               type="tel"
               inputMode="numeric"
               required
               value={phone}
               onChange={handlePhoneChange}
-              placeholder={
-                country === "SA"
-                  ? "5XXXXXXXX"
-                  : "XXXXXXXXXXX"
-              }
-              className="w-full border border-gray-300 rounded-r-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder={country === "SA" ? "5XXXXXXXX" : "XXXXXXXXXXX"}
+              style={{
+                ...fieldInput,
+                borderRadius: "0 12px 12px 0",
+                fontFamily: "'Space Grotesk', sans-serif",
+              }}
             />
           </div>
-
-          <p className="text-xs text-gray-500 mt-2">
+          <p style={fieldHint}>
             {country === "SA"
               ? "أدخل رقم الجوال السعودي بدون الصفر في البداية"
               : "أدخل رقم الجوال الألماني بدون الصفر في البداية"}
@@ -279,61 +331,63 @@ export default function CustomerRegisterCard() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            اسم المستخدم
-          </label>
-
+          <label style={fieldLabel}>اسم المستخدم</label>
           <input
             type="text"
             value={username}
             readOnly
             placeholder="سيتم إنشاء اسم المستخدم تلقائيًا"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-100 text-gray-700 outline-none"
+            style={{
+              ...fieldInput,
+              background: "#F5F2EC",
+              color: "#586377",
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
           />
-
-          <p className="text-xs text-gray-500 mt-2">
+          <p style={fieldHint}>
             رقم جوالك المحلي سيكون اسم المستخدم الخاص بك
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            كلمة المرور
-          </label>
-
+          <label style={fieldLabel}>كلمة المرور</label>
           <input
             type="password"
             required
             minLength={8}
             value={password}
-            onChange={(event) =>
-              setPassword(event.target.value)
-            }
+            onChange={(event) => setPassword(event.target.value)}
             placeholder="أدخل كلمة المرور"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
+            style={fieldInput}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            تأكيد كلمة المرور
-          </label>
-
+          <label style={fieldLabel}>تأكيد كلمة المرور</label>
           <input
             type="password"
             required
             minLength={8}
             value={confirmPassword}
-            onChange={(event) =>
-              setConfirmPassword(event.target.value)
-            }
+            onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="أعد إدخال كلمة المرور"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600"
+            style={fieldInput}
           />
         </div>
 
         {message && (
-          <div className="text-center text-sm font-semibold text-red-700 bg-red-50 rounded-xl p-3">
+          <div
+            style={{
+              textAlign: "center",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#B03A3A",
+              background: "rgba(200,60,60,0.08)",
+              border: "1px solid rgba(200,60,60,0.25)",
+              borderRadius: 12,
+              padding: 12,
+            }}
+          >
             {message}
           </div>
         )}
@@ -341,11 +395,21 @@ export default function CustomerRegisterCard() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white font-semibold py-3 rounded-xl"
+          style={{
+            width: "100%",
+            marginTop: 6,
+            border: "none",
+            borderRadius: 13,
+            fontFamily: "inherit",
+            fontWeight: 700,
+            fontSize: 15.5,
+            padding: 14,
+            background: isLoading ? "rgba(18,44,92,0.12)" : "#16407F",
+            color: isLoading ? "#9AA3B5" : "#F5F2EC",
+            cursor: isLoading ? "not-allowed" : "pointer",
+          }}
         >
-          {isLoading
-            ? "جاري إنشاء الحساب..."
-            : "إنشاء الحساب"}
+          {isLoading ? "جاري إنشاء الحساب..." : "إنشاء الحساب"}
         </button>
       </form>
     </div>
