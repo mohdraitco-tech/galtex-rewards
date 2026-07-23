@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   ChangeEvent,
@@ -82,6 +82,7 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState<ProductForm>(emptyForm);
 
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
 
   const [productImage, setProductImage] = useState<File | null>(null);
   const [productImagePreview, setProductImagePreview] = useState("");
@@ -229,6 +230,7 @@ export default function AdminProductsPage() {
   }
 
   function resetForm() {
+    setShowProductModal(false);
     removeSelectedImage();
     setForm(emptyForm);
     setEditingProductId(null);
@@ -470,6 +472,7 @@ export default function AdminProductsPage() {
 
   function handleEditProduct(product: Product) {
     setEditingProductId(product.id);
+    setShowProductModal(true);
     setForm({
       product_name_ar: product.product_name_ar || "",
       product_name_en: product.product_name_en || "",
@@ -963,6 +966,14 @@ console.log("3", ids);
         )}
 
         {/* ============== نموذج إضافة/تعديل ============== */}
+        <button type="button" onClick={() => setShowProductModal(true)} style={{ background: "#16407F", color: "#FFFDF8", border: "none", fontFamily: "inherit", fontWeight: 700, fontSize: 15, padding: "13px 26px", borderRadius: 12, cursor: "pointer", marginBottom: 20 }}>
+          + إضافة منتج جديد
+        </button>
+
+        {showProductModal && (
+        <div onClick={() => resetForm()} style={{ position: "fixed", inset: 0, background: "rgba(14,44,92,0.45)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 20px", overflowY: "auto" }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ width: "min(900px, 100%)", position: "relative" }}>
+          <button type="button" onClick={() => resetForm()} aria-label="إغلاق" style={{ position: "absolute", top: 14, left: 14, zIndex: 5, width: 38, height: 38, borderRadius: "50%", border: "none", background: "rgba(18,44,92,0.08)", color: "#0E2C5C", fontSize: 22, fontWeight: 700, lineHeight: 1, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "26px", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
@@ -1031,6 +1042,9 @@ console.log("3", ids);
             </button>
           </form>
         </section>
+        </div>
+        </div>
+        )}
 
         {/* ============== قسم المنتجات (الجدول) ============== */}
         <section style={{ background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)", borderRadius: 22, padding: "26px" }}>
