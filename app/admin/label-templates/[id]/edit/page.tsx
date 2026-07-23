@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -345,12 +345,12 @@ function renderField(field: TemplateField, isUploading?: boolean) {
   }
 
   if (field.type === "product_name_ar") {
-    return <div className="w-full font-black text-slate-900" style={textStyle(field, true)}>Description: BRAKE PAD</div>;
+    return <div className="w-full font-black text-slate-900" style={textStyle(field, true)}>EN: BRAKE PAD</div>;
   }
 
 
   if (field.type === "part_number") {
-    return <div className="w-full font-black text-slate-900" style={textStyle(field, true)}>ITEM NO : GFB-1001</div>;
+    return <div className="w-full font-black text-slate-900" style={textStyle(field, true)}>GFB-1001</div>;
   }
 
   if (field.type === "reference_number") {

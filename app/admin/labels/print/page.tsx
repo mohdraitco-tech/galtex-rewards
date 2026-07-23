@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -461,8 +461,8 @@ useEffect(() => {
 
     if (type === "product_name") {
       return (
-        <div style={textStyle(f, true)} className="font-black text-slate-900" dir="ltr">
-          Description: {label.product_name_en?.trim() || "-"}
+        <div style={{ ...textStyle(f, false), display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }} className="font-black text-slate-900" dir="ltr">
+          EN: {label.product_name_en?.trim() || "-"}
         </div>
       );
     }
@@ -470,7 +470,7 @@ useEffect(() => {
     if (type === "part_number") {
       return (
         <div style={textStyle(f, true)} className="font-black text-slate-900" dir="ltr">
-          ITEM NO : {label.product_number || "-"}
+          {label.product_number || "-"}
         </div>
       );
     }
