@@ -78,13 +78,6 @@ type PrintJob = {
   templateId: string;
 };
 
-type ProductStats = {
-  total: number;
-  active: number;
-  inactive: number;
-  totalPoints: number;
-};
-
 // وضع استيراد الصور الجماعي:
 //   replace = استبدال صور الأصناف التي تملك صورة بالفعل
 //   add     = رفع صور للأصناف التي لا تملك صورة (يحمي الموجودة)
@@ -209,7 +202,6 @@ export default function AdminProductsPage() {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  const [stats, setStats] = useState<ProductStats>({ total: 0, active: 0, inactive: 0, totalPoints: 0 });
   const [categoryGroups, setCategoryGroups] = useState<string[]>([]);
   const [categoryPairs, setCategoryPairs] = useState<{ group: string | null; name: string }[]>([]);
   const [applications, setApplications] = useState<string[]>([]);
@@ -323,24 +315,6 @@ export default function AdminProductsPage() {
     setIsLoading(false);
   }, [appliedSearch, categoryGroupFilter, categoryFilter, applicationFilter, manufacturerFilter, brandFilter, statusFilter, page]);
 
-  const loadStats = useCallback(async () => {
-    // الإحصائيات دائماً على كل الأصناف — لا تتأثر بالبحث ولا الفلاتر
-    const { data, error } = await supabase.rpc("get_admin_products_stats");
-
-    if (error) {
-      console.error("STATS ERROR:", error);
-    }
-
-    if (data) {
-      setStats({
-        total: Number(data.total || 0),
-        active: Number(data.active || 0),
-        inactive: Number(data.inactive || 0),
-        totalPoints: Number(data.total_points || 0),
-      });
-    }
-  }, []);
-
   const loadCategories = useCallback(async () => {
     const { data } = await supabase.rpc("get_admin_product_categories");
 
@@ -371,8 +345,8 @@ export default function AdminProductsPage() {
 
   // تحديث كامل: الصفحة الحالية + الإحصائيات + قوائم التصنيف
   const refreshAll = useCallback(async () => {
-    await Promise.all([loadProducts(), loadStats(), loadCategories()]);
-  }, [loadProducts, loadStats, loadCategories]);
+    await Promise.all([loadProducts(), loadCategories()]);
+  }, [loadProducts, loadCategories]);
 
   // حارس الصلاحيات: يمنع أي حد ما عنده صلاحية "المنتجات" من فتح الصفحة
   // حتى لو كتب الرابط مباشرة بالمتصفح
@@ -417,10 +391,9 @@ export default function AdminProductsPage() {
   // البيانات الثابتة نسبياً: تُحمّل مرة واحدة عند فتح الصفحة
   useEffect(() => {
     if (isAuthorized !== true) return;
-    loadStats();
     loadCategories();
     loadTemplates();
-  }, [isAuthorized, loadStats, loadCategories, loadTemplates]);
+  }, [isAuthorized, loadCategories, loadTemplates]);
 
   // تنظيف رابط معاينة الصورة عند مغادرة الصفحة
   useEffect(() => {
@@ -1252,26 +1225,6 @@ export default function AdminProductsPage() {
             <button type="button" onClick={() => router.push("/admin/label-templates/new/edit")} style={{ background: "#C4952E", border: "none", color: "#0E2C5C", fontFamily: "inherit", fontWeight: 700, fontSize: 14, padding: "11px 22px", borderRadius: 12, cursor: "pointer" }}>
               إدارة قوالب الليبل
             </button>
-          </div>
-        </div>
-
-        {/* الإحصائيات */}
-        <div className="gx-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 26 }}>
-          <div style={{ borderRadius: 18, padding: "20px 22px", background: "linear-gradient(140deg,#16407F,#0E2C5C)", border: "none" }}>
-            <div style={{ fontSize: 13, color: "#C6D2EA", marginBottom: 8 }}>إجمالي نقاط المنتجات</div>
-            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: "#F5F2EC" }}>{stats.totalPoints}</div>
-          </div>
-          <div style={{ borderRadius: 18, padding: "20px 22px", background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)" }}>
-            <div style={{ fontSize: 13, color: "#7A8498", marginBottom: 8 }}>موقوفة</div>
-            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: "#C0392B" }}>{stats.inactive}</div>
-          </div>
-          <div style={{ borderRadius: 18, padding: "20px 22px", background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)" }}>
-            <div style={{ fontSize: 13, color: "#7A8498", marginBottom: 8 }}>فعّالة</div>
-            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: "#1F8A5B" }}>{stats.active}</div>
-          </div>
-          <div style={{ borderRadius: 18, padding: "20px 22px", background: "#FFFDF8", border: "1px solid rgba(18,44,92,0.1)" }}>
-            <div style={{ fontSize: 13, color: "#7A8498", marginBottom: 8 }}>إجمالي المنتجات</div>
-            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, lineHeight: 1, color: "#0E2C5C" }}>{stats.total}</div>
           </div>
         </div>
 
