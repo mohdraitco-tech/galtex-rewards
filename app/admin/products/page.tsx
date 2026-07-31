@@ -943,21 +943,12 @@ export default function AdminProductsPage() {
     setMessage("");
     setMessageType("");
 
-    // جلب كل الأصناف مرة واحدة لمعرفة من يملك صورة
-    const { data: allData, error: allError } = await supabase.rpc("get_admin_products_page", {
-      p_search: null,
-      p_category_group: null,
-      p_category: null,
-      p_limit: 200000,
-      p_offset: 0,
-      p_application: null,
-      p_manufacturer: null,
-      p_replaces_brand: null,
-      p_status: null,
-    });
+    /* نجلب رقم الصنف وحالة الصورة فقط — لا كل بيانات المنتج.
+       هذا يجعل التحضير سريعاً حتى مع عشرات آلاف الأصناف. */
+    const { data: statusData, error: statusError } = await supabase.rpc("get_products_image_status");
 
-    if (allError) {
-      setMessage(allError.message || "تعذر جلب قائمة الأصناف قبل رفع الصور");
+    if (statusError) {
+      setMessage(statusError.message || "تعذر جلب حالة صور الأصناف");
       setMessageType("error");
       setIsImportingImages(false);
       setImportingImagesMode(null);
@@ -965,14 +956,20 @@ export default function AdminProductsPage() {
       return;
     }
 
-    const allProducts = (allData?.rows || []) as Product[];
+    /* الدالة ترجع كائناً واحداً { "رقم الصنف": هل يملك صورة } — لا جدول صفوف،
+       لأن Supabase يحدّ الجداول بألف صف فتضيع باقي الأصناف. */
+    const imageStatusByNumber = new Map<string, boolean>();
+    Object.entries((statusData || {}) as Record<string, boolean>).forEach(([number, hasImage]) => {
+      imageStatusByNumber.set(String(number).trim(), Boolean(hasImage));
+    });
 
-    // جدول بحث سريع: رقم الصنف => المنتج (المطابقة زي اسم الملف تماماً)
-    const productByNumber = new Map<string, Product>();
-    for (const p of allProducts) {
-      if (p.product_number) {
-        productByNumber.set(p.product_number.trim(), p);
-      }
+    if (imageStatusByNumber.size === 0) {
+      setMessage("تعذر تحميل قائمة الأصناف — أعد المحاولة أو حدّث الصفحة");
+      setMessageType("error");
+      setIsImportingImages(false);
+      setImportingImagesMode(null);
+      event.target.value = "";
+      return;
     }
 
     const summary: ImportSummary = { total: files.length, success: 0, failed: [] };
@@ -987,10 +984,10 @@ export default function AdminProductsPage() {
           return;
         }
 
-        const matchedProduct = productByNumber.get(productNumber);
+        const hasImageValue = imageStatusByNumber.get(productNumber);
 
         // الصنف غير موجود إطلاقاً بالنظام
-        if (!matchedProduct) {
+        if (hasImageValue === undefined) {
           summary.failed.push({
             row: index + 1,
             product_number: productNumber,
@@ -999,7 +996,7 @@ export default function AdminProductsPage() {
           return;
         }
 
-        const hasImage = Boolean(matchedProduct.product_image_url);
+        const hasImage = hasImageValue;
 
         // زر الاستبدال: يعمل فقط لو الصنف يملك صورة سابقة
         if (mode === "replace" && !hasImage) {
