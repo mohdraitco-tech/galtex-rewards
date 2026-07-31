@@ -101,10 +101,23 @@ const emptyForm: ProductForm = {
 };
 
 // عدد الأصناف في الصفحة الواحدة
-const PAGE_SIZE = 100;
+// عدد الأصناف المعروضة — الباقي يظهر بالبحث فقط
+const PAGE_SIZE = 50;
 
 // عدد الأصناف المرسلة في كل دفعة استيراد
 const IMPORT_BATCH_SIZE = 200;
+
+// دفعة استيراد الموديلات أكبر لأن الإدراج أخف من الاستيراد المركّب
+const APPLICATIONS_BATCH_SIZE = 1000;
+
+// دفعة استيراد الأرقام المرجعية المربوطة بماركاتها
+const REFERENCES_BATCH_SIZE = 1000;
+
+// دفعة استيراد الملاحظات
+const NOTES_BATCH_SIZE = 1000;
+
+// دفعة استيراد المواصفات الفنية
+const SPECS_BATCH_SIZE = 1000;
 
 // فواصل مقبولة بين الأرقام المرجعية: سطر جديد، فاصلة عربية أو إنجليزية،
 // فاصلة منقوطة، شرطة عمودية، أو tab
@@ -156,6 +169,23 @@ function isNewProduct(createdAt: string | null | undefined) {
   return Date.now() - created < NEW_BADGE_DURATION_MS;
 }
 
+/* كمية التعبئة قد تصل رقماً عادياً (1) أو نصاً وصفياً من الكتالوج:
+     "Packaging unit (PU): 10 pcs"  =>  10
+     "Packaging unit (PU): 25 m"    =>  25
+   نأخذ أول رقم في النص، والافتراضي 1 لو لم نجد رقماً. */
+function parsePackingQty(value: any) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return 1;
+
+  const direct = Number(raw);
+  if (Number.isFinite(direct) && direct > 0) return Math.floor(direct);
+
+  const match = raw.match(/\d+/);
+  const parsed = match ? Number(match[0]) : 0;
+
+  return parsed > 0 ? parsed : 1;
+}
+
 // يقرأ قيمة العمود من صف الإكسل بأي اسم من الأسماء المحتملة (عربي أو إنجليزي)
 function pickColumn(row: any, ...keys: string[]) {
   for (const key of keys) {
@@ -199,7 +229,6 @@ export default function AdminProductsPage() {
   const [brandFilter, setBrandFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
   const [categoryGroups, setCategoryGroups] = useState<string[]>([]);
@@ -220,6 +249,8 @@ export default function AdminProductsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
+  // نوع آخر استيراد: منتجات أو موديلات شاحنات (لعنوان صندوق النتيجة)
+  const [lastImportKind, setLastImportKind] = useState<"products" | "applications" | "references" | "notes" | "specs">("products");
 
   const [isImportingImages, setIsImportingImages] = useState(false);
   // أي زر يعمل حالياً (عشان نُظهر مؤشّر التقدّم على الزر الصحيح فقط)
@@ -235,8 +266,31 @@ export default function AdminProductsPage() {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   // الصنف المعروضة أرقامه المرجعية كاملة في نافذة منفصلة
   const [refsModalProduct, setRefsModalProduct] = useState<Product | null>(null);
+  // موديلات الشاحنات للصنف المفتوح في نافذة التعديل
+  const [productApplications, setProductApplications] = useState<{ brand: string; model: string }[]>([]);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(false);
+  // نافذة عرض المنتج (قراءة فقط)
+  const [viewProduct, setViewProduct] = useState<Product | null>(null);
+  const [viewApplications, setViewApplications] = useState<{ brand: string; model: string }[]>([]);
+  const [isLoadingViewApplications, setIsLoadingViewApplications] = useState(false);
+  // الأرقام المرجعية مربوطة بماركاتها (جدول Comparison numbers)
+  const [viewReferences, setViewReferences] = useState<{ brand: string; reference: string }[]>([]);
+  const [isLoadingViewReferences, setIsLoadingViewReferences] = useState(false);
+  // الأرقام المرجعية بماركاتها داخل نموذج التعديل (قابلة للتحرير)
+  const [formReferences, setFormReferences] = useState<{ brand: string; reference: string }[]>([]);
+  const [referenceBrands, setReferenceBrands] = useState<string[]>([]);
+  // موديلات الشاحنات القابلة للتحرير داخل النموذج
+  const [formApplications, setFormApplications] = useState<{ brand: string; model: string }[]>([]);
+  const [vehicleBrands, setVehicleBrands] = useState<string[]>([]);
+  const [applicationsLoaded, setApplicationsLoaded] = useState(false);
+  /* حماية: لا نحفظ الأرقام إلا إذا تأكدنا أنها حُمّلت بنجاح.
+     لولا هذا، فشل التحميل يعرض جدولاً فارغاً، والحفظ يمحو أرقام الصنف كلها. */
+  const [referencesLoaded, setReferencesLoaded] = useState(false);
+  // ملاحظات الصنف (أوصاف من المورّد — خارج البحث عمداً)
+  const [viewNotes, setViewNotes] = useState<{ note: string; type: string | null }[]>([]);
+  // المواصفات الفنية (Product details)
+  const [viewSpecs, setViewSpecs] = useState<{ property: string; value: string }[]>([]);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const hasActiveFilters = Boolean(
     categoryGroupFilter || categoryFilter || applicationFilter || manufacturerFilter || brandFilter || statusFilter
@@ -249,7 +303,6 @@ export default function AdminProductsPage() {
     setManufacturerFilter("");
     setBrandFilter("");
     setStatusFilter("");
-    setPage(1);
   }
 
   // التصنيفات المعروضة تتبع المجموعة المختارة
@@ -296,7 +349,7 @@ export default function AdminProductsPage() {
       p_category_group: categoryGroupFilter || null,
       p_category: categoryFilter || null,
       p_limit: PAGE_SIZE,
-      p_offset: (page - 1) * PAGE_SIZE,
+      p_offset: 0,
       p_application: applicationFilter || null,
       p_manufacturer: manufacturerFilter || null,
       p_replaces_brand: brandFilter || null,
@@ -313,7 +366,7 @@ export default function AdminProductsPage() {
     setProducts((data?.rows || []) as Product[]);
     setTotalCount(Number(data?.total || 0));
     setIsLoading(false);
-  }, [appliedSearch, categoryGroupFilter, categoryFilter, applicationFilter, manufacturerFilter, brandFilter, statusFilter, page]);
+  }, [appliedSearch, categoryGroupFilter, categoryFilter, applicationFilter, manufacturerFilter, brandFilter, statusFilter]);
 
   const loadCategories = useCallback(async () => {
     const { data } = await supabase.rpc("get_admin_product_categories");
@@ -326,6 +379,16 @@ export default function AdminProductsPage() {
       setBrands((data.brands || []) as string[]);
       setBreadcrumbs((data.breadcrumbs || []) as { group: string | null; category: string | null; path: string }[]);
     }
+  }, []);
+
+  const loadReferenceBrands = useCallback(async () => {
+    const [refsBrands, vehBrands] = await Promise.all([
+      supabase.rpc("get_reference_brands"),
+      supabase.rpc("get_vehicle_brands"),
+    ]);
+
+    setReferenceBrands((refsBrands.data || []) as string[]);
+    setVehicleBrands((vehBrands.data || []) as string[]);
   }, []);
 
   const loadTemplates = useCallback(async () => {
@@ -376,7 +439,6 @@ export default function AdminProductsPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setAppliedSearch(search);
-      setPage(1);
     }, 500);
 
     return () => clearTimeout(timer);
@@ -393,7 +455,8 @@ export default function AdminProductsPage() {
     if (isAuthorized !== true) return;
     loadCategories();
     loadTemplates();
-  }, [isAuthorized, loadCategories, loadTemplates]);
+    loadReferenceBrands();
+  }, [isAuthorized, loadCategories, loadTemplates, loadReferenceBrands]);
 
   // تنظيف رابط معاينة الصورة عند مغادرة الصفحة
   useEffect(() => {
@@ -413,6 +476,13 @@ export default function AdminProductsPage() {
     const qPlain = stripFormatting(q);
     if (qPlain.length < 3) return;
 
+    // نتيجة واحدة فقط => هي المقصودة بالتأكيد
+    if (products.length === 1) {
+      touchProductUsage(products[0].id);
+      return;
+    }
+
+    // عدة نتائج => نسجّل الصنف الذي طابق البحث حرفياً
     const matched = products.find((product) => {
       const values = [
         product.product_number,
@@ -443,6 +513,11 @@ export default function AdminProductsPage() {
 
   function resetForm() {
     setShowProductModal(false);
+    setProductApplications([]);
+    setFormApplications([]);
+    setFormReferences([]);
+    setReferencesLoaded(true);
+    setApplicationsLoaded(true);
     removeSelectedImage();
     setForm(emptyForm);
     setEditingProductId(null);
@@ -548,9 +623,131 @@ export default function AdminProductsPage() {
     return data.publicUrl;
   }
 
+  // موديلات الشاحنات والأرقام المرجعية — تُقرأ عند فتح نافذة التعديل
+  async function loadProductApplications(productNumber: string) {
+    setIsLoadingApplications(true);
+    setProductApplications([]);
+    setFormApplications([]);
+    setFormReferences([]);
+    setReferencesLoaded(false);
+    setApplicationsLoaded(false);
+
+    const [appsResult, refsResult] = await Promise.all([
+      supabase.rpc("get_product_applications", { p_product_number: productNumber }),
+      supabase.rpc("get_product_references", { p_product_number: productNumber }),
+    ]);
+
+    if (!appsResult.error) {
+      const list = (appsResult.data || []) as { brand: string; model: string }[];
+      setProductApplications(list);
+      setFormApplications(list);
+      setApplicationsLoaded(true);
+    }
+
+    if (!refsResult.error) {
+      setFormReferences((refsResult.data || []) as { brand: string; reference: string }[]);
+      setReferencesLoaded(true);
+    }
+
+    setIsLoadingApplications(false);
+  }
+
+  // فتح نافذة عرض المنتج مع موديلاته — قراءة فقط بلا أي تعديل
+  async function openViewProduct(product: Product) {
+    setViewProduct(product);
+    touchProductUsage(product.id);
+    setViewApplications([]);
+    setViewReferences([]);
+    setViewNotes([]);
+    setViewSpecs([]);
+    setIsLoadingViewApplications(true);
+    setIsLoadingViewReferences(true);
+
+    // الأربعة بالتوازي — أسرع من واحد بعد الآخر
+    const [appsResult, refsResult, notesResult, specsResult] = await Promise.all([
+      supabase.rpc("get_product_applications", { p_product_number: product.product_number }),
+      supabase.rpc("get_product_references", { p_product_number: product.product_number }),
+      supabase.rpc("get_product_notes", { p_product_number: product.product_number }),
+      supabase.rpc("get_product_specs", { p_product_number: product.product_number }),
+    ]);
+
+    setViewNotes((notesResult.data || []) as { note: string; type: string | null }[]);
+    setViewSpecs((specsResult.data || []) as { property: string; value: string }[]);
+
+    setViewApplications((appsResult.data || []) as { brand: string; model: string }[]);
+    setIsLoadingViewApplications(false);
+
+    setViewReferences((refsResult.data || []) as { brand: string; reference: string }[]);
+    setIsLoadingViewReferences(false);
+  }
+
   // تسجيل استخدام الصنف — يرفعه لأعلى القائمة في التحميل التالي
   async function touchProductUsage(productId: string) {
     await supabase.rpc("touch_product_usage", { p_product_id: productId });
+  }
+
+  /* حفظ الأرقام المرجعية بماركاتها.
+     الأرقام تُدمج أيضاً في خانة "كل الأرقام المرجعية" لأنها أساس البحث،
+     فلا يضيع رقم أضفته هنا من نتائج البحث. */
+  async function saveFormReferences(productNumber: string) {
+    // لم تُحمَّل الأرقام بنجاح => لا نحفظ شيئاً حتى لا نمحو الموجود
+    if (!referencesLoaded) return "";
+
+    const rows = formReferences
+      .map((row) => ({ brand: row.brand.trim(), reference: row.reference.trim() }))
+      .filter((row) => row.brand && row.reference);
+
+    const { data, error } = await supabase.rpc("save_product_references", {
+      p_product_number: productNumber,
+      p_rows: rows,
+    });
+
+    if (error || !data?.success) {
+      return data?.message || error?.message || "تعذر حفظ الأرقام المرجعية";
+    }
+
+    return "";
+  }
+
+  /* حفظ موديلات الشاحنات. مثل الأرقام: لا نحفظ إن لم تُحمَّل بنجاح
+     حتى لا يمحو الجدول الفارغ موديلات الصنف. */
+  async function saveFormApplications(productNumber: string) {
+    if (!applicationsLoaded) return "";
+
+    const rows = formApplications
+      .map((row) => ({ brand: row.brand.trim(), model: row.model.trim() }))
+      .filter((row) => row.brand && row.model);
+
+    const { data, error } = await supabase.rpc("save_product_applications", {
+      p_product_number: productNumber,
+      p_rows: rows,
+    });
+
+    if (error || !data?.success) {
+      return data?.message || error?.message || "تعذر حفظ الموديلات";
+    }
+
+    return "";
+  }
+
+  // يدمج أرقام الجدول داخل الخانة النصية بلا تكرار
+  function mergeReferencesIntoText(currentText: string) {
+    const existing = splitReferences(currentText);
+    const seen = new Set(existing.map((v) => stripFormatting(v)));
+    const merged = [...existing];
+
+    formReferences.forEach((row) => {
+      const value = row.reference.trim();
+      if (!value) return;
+
+      const key = stripFormatting(value);
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(value);
+      }
+    });
+
+    return merged.join(", ");
   }
 
   function validateForm() {
@@ -607,7 +804,7 @@ export default function AdminProductsPage() {
           p_packing_qty: numericPackingQty,
           p_points: numericPoints,
           p_product_image_url: imageUrl,
-          p_all_references: normalizeReferences(form.all_references),
+          p_all_references: normalizeReferences(mergeReferencesIntoText(form.all_references)),
           p_category_group: form.category_group.trim(),
           p_category: form.category.trim(),
           p_category_breadcrumb: form.category_breadcrumb.trim(),
@@ -625,9 +822,17 @@ export default function AdminProductsPage() {
           return;
         }
 
+        const refsError = await saveFormReferences(cleanProductNumber);
+        const appsError = await saveFormApplications(cleanProductNumber);
+        const combinedError = refsError || appsError;
+
         resetForm();
-        setMessage(data.message || "تم تعديل المنتج بنجاح");
-        setMessageType("success");
+        setMessage(
+          combinedError
+            ? `تم تعديل المنتج، لكن حدث خطأ: ${combinedError}`
+            : data.message || "تم تعديل المنتج بنجاح"
+        );
+        setMessageType(combinedError ? "error" : "success");
         await refreshAll();
         return;
       }
@@ -640,7 +845,7 @@ export default function AdminProductsPage() {
         p_points: numericPoints,
         p_product_image_url: imageUrl,
         p_reference_number: form.reference_number.trim() || null,
-        p_all_references: normalizeReferences(form.all_references),
+        p_all_references: normalizeReferences(mergeReferencesIntoText(form.all_references)),
         p_category_group: form.category_group.trim() || null,
         p_category: form.category.trim() || null,
         p_category_breadcrumb: form.category_breadcrumb.trim() || null,
@@ -668,9 +873,17 @@ export default function AdminProductsPage() {
         return;
       }
 
+      const createRefsError = await saveFormReferences(cleanProductNumber);
+      const createAppsError = await saveFormApplications(cleanProductNumber);
+      const createError = createRefsError || createAppsError;
+
       resetForm();
-      setMessage(`تم إنشاء المنتج بنجاح — الباركود التلقائي: ${data.barcode || "-"}`);
-      setMessageType("success");
+      setMessage(
+        createError
+          ? `تم إنشاء المنتج، لكن حدث خطأ: ${createError}`
+          : `تم إنشاء المنتج بنجاح — الباركود التلقائي: ${data.barcode || "-"}`
+      );
+      setMessageType(createError ? "error" : "success");
       await refreshAll();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع الصورة");
@@ -728,6 +941,9 @@ export default function AdminProductsPage() {
     setKeepOldImageUrl(product.product_image_url || null);
     setMessage("أنت الآن تعدّل المنتج المحدد");
     setMessageType("success");
+
+    loadProductApplications(product.product_number);
+    touchProductUsage(product.id);
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1085,6 +1301,198 @@ export default function AdminProductsPage() {
        - موجود  → تحديث الاسم الإنجليزي والأرقام والتصنيف فقط
        - جديد   → إنشاء كامل
      والخانة الفاضية في الإكسل لا تمسّ البيانات الموجودة إطلاقاً. */
+  /* استيراد المواصفات الفنية (Product details).
+     نحفظ ترتيب الظهور في المصدر عبر sort_order داخل كل صنف. */
+  async function importProductSpecs(sheet: any) {
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    const orderByProduct = new Map<string, number>();
+
+    const payload = rows
+      .map((row) => {
+        const productNumber = pickColumn(row, "GALTEX No.", "GALTEX No", "رقم الصنف");
+        const order = (orderByProduct.get(productNumber) || 0) + 1;
+        orderByProduct.set(productNumber, order);
+
+        return {
+          product_number: productNumber,
+          property: pickColumn(row, "Property", "Properties", "الخاصية"),
+          value: pickColumn(row, "Value", "Data", "القيمة"),
+          sort_order: order,
+        };
+      })
+      .filter((row) => row.product_number && row.property && row.value);
+
+    setImportProgress({ done: 0, total: payload.length });
+
+    let inserted = 0;
+    let existing = 0;
+    const failed: { product_number: string; message: string }[] = [];
+
+    for (let start = 0; start < payload.length; start += SPECS_BATCH_SIZE) {
+      const chunk = payload.slice(start, start + SPECS_BATCH_SIZE);
+
+      const { data, error } = await supabase.rpc("import_product_specs_batch", { p_rows: chunk });
+
+      if (error) {
+        failed.push({
+          product_number: `الدفعة ${Math.floor(start / SPECS_BATCH_SIZE) + 1}`,
+          message: error.message || "فشلت الدفعة كاملة",
+        });
+      } else {
+        inserted += Number(data?.inserted || 0);
+        existing += Number(data?.existing || 0);
+      }
+
+      setImportProgress({ done: Math.min(start + chunk.length, payload.length), total: payload.length });
+    }
+
+    setImportSummary({ total: rows.length, success: inserted + existing, created: inserted, updated: existing, failed });
+  }
+
+  /* استيراد ملاحظات الأصناف — أوصاف يضعها المورّد حين لا يوجد رقم مرجعي.
+     تُعرض في النافذة ولا تدخل البحث حتى لا تُربك النتائج. */
+  async function importProductNotes(sheet: any) {
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    const payload = rows
+      .map((row) => ({
+        product_number: pickColumn(row, "GALTEX No.", "GALTEX No", "رقم الصنف"),
+        note: pickColumn(row, "Note", "الملاحظة"),
+        note_type: pickColumn(row, "Note Type", "نوع الملاحظة"),
+      }))
+      .filter((row) => row.product_number && row.note);
+
+    setImportProgress({ done: 0, total: payload.length });
+
+    let inserted = 0;
+    let existing = 0;
+    const failed: { product_number: string; message: string }[] = [];
+
+    for (let start = 0; start < payload.length; start += NOTES_BATCH_SIZE) {
+      const chunk = payload.slice(start, start + NOTES_BATCH_SIZE);
+
+      const { data, error } = await supabase.rpc("import_product_notes_batch", { p_rows: chunk });
+
+      if (error) {
+        failed.push({
+          product_number: `الدفعة ${Math.floor(start / NOTES_BATCH_SIZE) + 1}`,
+          message: error.message || "فشلت الدفعة كاملة",
+        });
+      } else {
+        inserted += Number(data?.inserted || 0);
+        existing += Number(data?.existing || 0);
+      }
+
+      setImportProgress({ done: Math.min(start + chunk.length, payload.length), total: payload.length });
+    }
+
+    setImportSummary({ total: rows.length, success: inserted + existing, created: inserted, updated: existing, failed });
+  }
+
+  /* استيراد الأرقام المرجعية مربوطة بماركاتها (جدول Comparison numbers).
+     الربط بـ GALTEX No. فقط، والإدراج upsert.
+     الأرقام تُحفظ كما هي بمسافاتها ونقاطها — لا تنسيق ولا تجريد. */
+  async function importProductReferences(sheet: any) {
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    const payload = rows
+      .map((row) => ({
+        product_number: pickColumn(row, "GALTEX No.", "GALTEX No", "رقم الصنف"),
+        brand: pickColumn(row, "Brand", "Replaces", "الماركة"),
+        reference_number: pickColumn(row, "Reference Number", "Reference number", "الرقم المرجعي"),
+      }))
+      .filter((row) => row.product_number && row.brand && row.reference_number);
+
+    setImportProgress({ done: 0, total: payload.length });
+
+    let inserted = 0;
+    let existing = 0;
+    const failed: { product_number: string; message: string }[] = [];
+
+    for (let start = 0; start < payload.length; start += REFERENCES_BATCH_SIZE) {
+      const chunk = payload.slice(start, start + REFERENCES_BATCH_SIZE);
+
+      const { data, error } = await supabase.rpc("import_product_references_batch", {
+        p_rows: chunk,
+      });
+
+      if (error) {
+        failed.push({
+          product_number: `الدفعة ${Math.floor(start / REFERENCES_BATCH_SIZE) + 1}`,
+          message: error.message || "فشلت الدفعة كاملة",
+        });
+      } else {
+        inserted += Number(data?.inserted || 0);
+        existing += Number(data?.existing || 0);
+      }
+
+      setImportProgress({ done: Math.min(start + chunk.length, payload.length), total: payload.length });
+    }
+
+    setImportSummary({
+      total: rows.length,
+      success: inserted + existing,
+      created: inserted,
+      updated: existing,
+      failed,
+    });
+  }
+
+  /* استيراد موديلات الشاحنات من شيت Flat.
+     الربط بـ GALTEX No. فقط، والإدراج upsert — إعادة الملف لا تُكرّر شيئاً. */
+  async function importVehicleApplications(sheet: any) {
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    /* اسم الموديل في المصدر يكرّر السنوات مرتين:
+         "FH (4) 2012- 2012 - 0"  =>  "FH (4) 2012-"
+         "B12B 2001-2011 2001 - 2011"  =>  "B12B 2001-2011"
+       نحذف اللاحقة المكررة فقط، وما عداها يبقى كما هو حرفياً. */
+    const cleanModelName = (value: string) => value.replace(/\s+\d{4}\s-\s\d{1,4}$/, "").trim();
+
+    const payload = rows
+      .map((row) => ({
+        product_number: pickColumn(row, "GALTEX No.", "GALTEX No", "رقم الصنف"),
+        vehicle_brand: pickColumn(row, "Vehicle Brand", "Brand", "الماركة"),
+        model: cleanModelName(pickColumn(row, "Model", "الموديل")),
+      }))
+      .filter((row) => row.product_number && row.vehicle_brand && row.model);
+
+    setImportProgress({ done: 0, total: payload.length });
+
+    let inserted = 0;
+    let existing = 0;
+    const failed: { product_number: string; message: string }[] = [];
+
+    for (let start = 0; start < payload.length; start += APPLICATIONS_BATCH_SIZE) {
+      const chunk = payload.slice(start, start + APPLICATIONS_BATCH_SIZE);
+
+      const { data, error } = await supabase.rpc("import_product_applications_batch", {
+        p_rows: chunk,
+      });
+
+      if (error) {
+        failed.push({
+          product_number: `الدفعة ${Math.floor(start / APPLICATIONS_BATCH_SIZE) + 1}`,
+          message: error.message || "فشلت الدفعة كاملة",
+        });
+      } else {
+        inserted += Number(data?.inserted || 0);
+        existing += Number(data?.existing || 0);
+      }
+
+      setImportProgress({ done: Math.min(start + chunk.length, payload.length), total: payload.length });
+    }
+
+    setImportSummary({
+      total: rows.length,
+      success: inserted + existing,
+      created: inserted,
+      updated: existing,
+      failed,
+    });
+  }
+
   async function handleImportExcel(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -1098,6 +1506,65 @@ export default function AdminProductsPage() {
     try {
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
+
+      /* اكتشاف نوع الملف تلقائياً:
+         لو فيه شيت اسمه Flat أو أعمدة (Vehicle Brand + Model) => ملف موديلات شاحنات
+         غير ذلك => ملف منتجات عادي */
+      const flatSheetName =
+        workbook.SheetNames.find((name) => name.trim().toLowerCase() === "flat") ||
+        workbook.SheetNames.find((name) => {
+          const head: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, range: 0 });
+          const cells = (head[0] || []).map((c: any) => String(c).trim().toLowerCase());
+          return cells.includes("model") && (cells.includes("vehicle brand") || cells.includes("brand"));
+        });
+
+      /* ملف المواصفات الفنية: أعمدة (Property + Value) */
+      const specsSheetName = workbook.SheetNames.find((name) => {
+        const head: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, range: 0 });
+        const cells = (head[0] || []).map((c: any) => String(c).trim().toLowerCase());
+        return cells.includes("property") && cells.includes("value");
+      });
+
+      if (specsSheetName) {
+        setLastImportKind("specs");
+        await importProductSpecs(workbook.Sheets[specsSheetName]);
+        return;
+      }
+
+      /* ملف الملاحظات: أعمدة (Note) */
+      const notesSheetName = workbook.SheetNames.find((name) => {
+        const head: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, range: 0 });
+        const cells = (head[0] || []).map((c: any) => String(c).trim().toLowerCase());
+        return cells.includes("note") || cells.includes("note type");
+      });
+
+      if (notesSheetName) {
+        setLastImportKind("notes");
+        await importProductNotes(workbook.Sheets[notesSheetName]);
+        return;
+      }
+
+      /* ملف الأرقام المرجعية: أعمدة (Brand + Reference Number) */
+      const refsSheetName = workbook.SheetNames.find((name) => {
+        const head: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, range: 0 });
+        const cells = (head[0] || []).map((c: any) => String(c).trim().toLowerCase());
+        return cells.includes("reference number") && (cells.includes("brand") || cells.includes("replaces"));
+      });
+
+      if (refsSheetName) {
+        setLastImportKind("references");
+        await importProductReferences(workbook.Sheets[refsSheetName]);
+        return;
+      }
+
+      if (flatSheetName) {
+        setLastImportKind("applications");
+        await importVehicleApplications(workbook.Sheets[flatSheetName]);
+        return;
+      }
+
+      setLastImportKind("products");
+
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
@@ -1127,7 +1594,7 @@ export default function AdminProductsPage() {
         application: pickColumn(row, "التطبيق", "Application"),
         replaces_brands: pickColumn(row, "يحل محل", "Replaces Brands"),
         product_details: pickColumn(row, "تفاصيل المنتج", "Product Details"),
-        packing_qty: Math.max(1, Math.floor(Number(row["كمية التعبئة"] ?? row["Packing Qty"] ?? 1) || 1)),
+        packing_qty: parsePackingQty(row["كمية التعبئة"] ?? row["Packing Qty"]),
         points: Math.max(0, Math.floor(Number(row["النقاط"] ?? row["Points"] ?? 0) || 0)),
         image_url: pickColumn(row, "رابط الصورة", "Image"),
       }));
@@ -1167,29 +1634,9 @@ export default function AdminProductsPage() {
     }
   }
 
-  // أرقام الصفحات المعروضة: الأولى، الأخيرة، والصفحات القريبة من الحالية
-  function buildPageList() {
-    const pages: (number | "gap")[] = [];
-    const window = 2;
-
-    for (let i = 1; i <= totalPages; i++) {
-      const isEdge = i === 1 || i === totalPages;
-      const isNear = Math.abs(i - page) <= window;
-
-      if (isEdge || isNear) {
-        pages.push(i);
-      } else if (pages[pages.length - 1] !== "gap") {
-        pages.push("gap");
-      }
-    }
-
-    return pages;
-  }
-
   if (isAuthorized !== true) return null;
 
-  const firstRow = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const lastRow = Math.min(page * PAGE_SIZE, totalCount);
+  const shownCount = products.length;
 
   return (
     <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif", background: "#F5F2EC", color: "#0E2C5C", minHeight: "100vh" }}>
@@ -1270,23 +1717,83 @@ export default function AdminProductsPage() {
               <InputField label="إجمالي نقاط المنتج" value={form.points} onChange={(value) => updateForm("points", value)} placeholder="100" type="number" ltr />
             </div>
 
-            <div style={{ marginTop: 18 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
-                <label style={{ fontSize: 13.5, fontWeight: 700, color: "#33405A" }}>كل الأرقام المرجعية</label>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#8F6819", background: "rgba(196,149,46,0.16)", borderRadius: 99, padding: "3px 12px" }}>
-                  {splitReferences(normalizeReferences(form.all_references)).length} رقم
-                </span>
+            {/* ===== الأرقام المرجعية بماركاتها ===== */}
+            <div style={{ marginTop: 18, borderTop: "1px solid rgba(18,44,92,0.1)", paddingTop: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+                <label style={{ fontSize: 13.5, fontWeight: 700, color: "#33405A" }}>الأرقام المرجعية بماركاتها</label>
+                {formReferences.length > 0 && (
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#8F6819", background: "rgba(196,149,46,0.16)", borderRadius: 99, padding: "3px 12px" }}>
+                    {formReferences.filter((r) => r.brand.trim() && r.reference.trim()).length} رقم
+                  </span>
+                )}
               </div>
-              <textarea
-                value={form.all_references}
-                onChange={(event) => updateForm("all_references", event.target.value)}
-                placeholder="22154286, 81508206016, A0006079231"
-                dir="ltr"
-                rows={4}
-                className="gx-in"
-                style={{ width: "100%", fontFamily: "inherit", fontSize: 14.5, lineHeight: 1.7, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 12, padding: "12px 14px", background: "#FFFFFF", color: "#0E2C5C", resize: "vertical" }}
-              />
-              <p style={{ marginTop: 6, fontSize: 12.5, color: "#586377" }}>افصل بين الأرقام بفاصلة أو سطر جديد. البحث في الجدول يشمل هذه الأرقام.</p>
+
+              {formReferences.length > 0 && (
+                <div style={{ maxHeight: 260, overflowY: "auto", borderRadius: 12, border: "1px solid rgba(18,44,92,0.12)", background: "#F5F2EC", padding: 10, marginBottom: 10 }}>
+                  {formReferences.map((row, index) => (
+                    <div key={index} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                      <input
+                        list="gx-ref-brands"
+                        value={row.brand}
+                        onChange={(event) => {
+                          const next = [...formReferences];
+                          next[index] = { ...next[index], brand: event.target.value };
+                          setFormReferences(next);
+                        }}
+                        placeholder="الماركة"
+                        dir="ltr"
+                        className="gx-in"
+                        style={{ flex: "0 0 36%", minWidth: 0, fontFamily: "inherit", fontSize: 13.5, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 10, padding: "9px 12px", background: "#FFFFFF", color: "#0E2C5C" }}
+                      />
+                      <input
+                        value={row.reference}
+                        onChange={(event) => {
+                          const next = [...formReferences];
+                          next[index] = { ...next[index], reference: event.target.value };
+                          setFormReferences(next);
+                        }}
+                        placeholder="الرقم المرجعي"
+                        dir="ltr"
+                        className="gx-in"
+                        style={{ flex: 1, minWidth: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 10, padding: "9px 12px", background: "#FFFFFF", color: "#16407F" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormReferences(formReferences.filter((_, i) => i !== index))}
+                        aria-label="حذف الرقم"
+                        style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, border: "none", background: "rgba(192,57,43,0.1)", color: "#C0392B", fontSize: 17, fontWeight: 700, lineHeight: 1, cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <datalist id="gx-ref-brands">
+                {referenceBrands.map((brand) => (
+                  <option key={brand} value={brand} />
+                ))}
+              </datalist>
+
+              {editingProductId && !referencesLoaded && !isLoadingApplications && (
+                <p style={{ margin: "0 0 10px", fontSize: 12.5, fontWeight: 700, color: "#C0392B" }}>
+                  تعذّر تحميل الأرقام المرجعية — لن تُحفظ أي تعديلات عليها. أغلق النافذة وأعد المحاولة.
+                </p>
+              )}
+
+              <button
+                type="button"
+                disabled={editingProductId !== null && !referencesLoaded}
+                onClick={() => setFormReferences([...formReferences, { brand: "", reference: "" }])}
+                style={{ background: "rgba(22,64,127,0.08)", color: "#16407F", border: "1px solid rgba(22,64,127,0.25)", fontFamily: "inherit", fontWeight: 700, fontSize: 13, borderRadius: 10, padding: "9px 18px", cursor: "pointer" }}
+              >
+                + إضافة رقم مرجعي
+              </button>
+
+              <p style={{ marginTop: 8, fontSize: 12.5, color: "#586377" }}>
+                اكتب الماركة أو اخترها من القائمة. هذه الأرقام تُضاف تلقائياً لخانة البحث فوق.
+              </p>
             </div>
 
             {/* ===== التصنيف ===== */}
@@ -1391,6 +1898,89 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
+            {/* ===== موديلات الشاحنات (قابلة للتحرير) ===== */}
+            <div style={{ marginTop: 18, borderTop: "1px solid rgba(18,44,92,0.1)", paddingTop: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+                <label style={{ fontSize: 13.5, fontWeight: 700, color: "#33405A" }}>موديلات الشاحنات</label>
+                {formApplications.length > 0 && (
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#16407F", background: "rgba(22,64,127,0.1)", borderRadius: 99, padding: "3px 12px" }}>
+                    {formApplications.filter((r) => r.brand.trim() && r.model.trim()).length} موديل
+                  </span>
+                )}
+              </div>
+
+              {editingProductId && isLoadingApplications && (
+                <p style={{ margin: "0 0 10px", fontSize: 13, color: "#7A8498" }}>جاري تحميل الموديلات...</p>
+              )}
+
+              {editingProductId && !applicationsLoaded && !isLoadingApplications && (
+                <p style={{ margin: "0 0 10px", fontSize: 12.5, fontWeight: 700, color: "#C0392B" }}>
+                  تعذّر تحميل الموديلات — لن تُحفظ أي تعديلات عليها. أغلق النافذة وأعد المحاولة.
+                </p>
+              )}
+
+              {formApplications.length > 0 && (
+                <div style={{ maxHeight: 260, overflowY: "auto", borderRadius: 12, border: "1px solid rgba(18,44,92,0.12)", background: "#F5F2EC", padding: 10, marginBottom: 10 }}>
+                  {formApplications.map((row, index) => (
+                    <div key={index} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                      <input
+                        list="gx-vehicle-brands"
+                        value={row.brand}
+                        onChange={(event) => {
+                          const next = [...formApplications];
+                          next[index] = { ...next[index], brand: event.target.value };
+                          setFormApplications(next);
+                        }}
+                        placeholder="الماركة"
+                        dir="ltr"
+                        className="gx-in"
+                        style={{ flex: "0 0 36%", minWidth: 0, fontFamily: "inherit", fontSize: 13.5, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 10, padding: "9px 12px", background: "#FFFFFF", color: "#0E2C5C" }}
+                      />
+                      <input
+                        value={row.model}
+                        onChange={(event) => {
+                          const next = [...formApplications];
+                          next[index] = { ...next[index], model: event.target.value };
+                          setFormApplications(next);
+                        }}
+                        placeholder="الموديل والسنوات"
+                        dir="ltr"
+                        className="gx-in"
+                        style={{ flex: 1, minWidth: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, border: "1px solid rgba(18,44,92,0.18)", borderRadius: 10, padding: "9px 12px", background: "#FFFFFF", color: "#16407F" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormApplications(formApplications.filter((_, i) => i !== index))}
+                        aria-label="حذف الموديل"
+                        style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, border: "none", background: "rgba(192,57,43,0.1)", color: "#C0392B", fontSize: 17, fontWeight: 700, lineHeight: 1, cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <datalist id="gx-vehicle-brands">
+                {vehicleBrands.map((brand) => (
+                  <option key={brand} value={brand} />
+                ))}
+              </datalist>
+
+              <button
+                type="button"
+                disabled={editingProductId !== null && !applicationsLoaded}
+                onClick={() => setFormApplications([...formApplications, { brand: "", model: "" }])}
+                style={{ background: "rgba(22,64,127,0.08)", color: "#16407F", border: "1px solid rgba(22,64,127,0.25)", fontFamily: "inherit", fontWeight: 700, fontSize: 13, borderRadius: 10, padding: "9px 18px", cursor: "pointer" }}
+              >
+                + إضافة موديل
+              </button>
+
+              <p style={{ marginTop: 8, fontSize: 12.5, color: "#586377" }}>
+                مثال: الماركة <span dir="ltr" style={{ fontWeight: 700 }}>Volvo FH</span> والموديل <span dir="ltr" style={{ fontWeight: 700 }}>FH12 1998-2001</span>
+              </p>
+            </div>
+
             {editingProductId ? (
               <p style={{ marginTop: 16, fontSize: 13.5, color: "#586377" }}>
                 الباركود التلقائي لهذا المنتج: <span style={{ fontWeight: 700, color: "#16407F" }} dir="ltr">{products.find((p) => p.id === editingProductId)?.barcode || "-"}</span>
@@ -1447,8 +2037,11 @@ export default function AdminProductsPage() {
               <div>
                 <h2 style={{ fontSize: 21, fontWeight: 700, margin: 0, color: "#0E2C5C" }}>المنتجات</h2>
                 <p style={{ fontSize: 14.5, color: "#586377", margin: "4px 0 0" }}>
-                  عرض {firstRow}–{lastRow} من {totalCount}
-                  {(appliedSearch || hasActiveFilters) ? " (نتيجة الفلترة)" : ""}
+                  {appliedSearch || hasActiveFilters ? (
+                    <>عرض {shownCount} من {totalCount} نتيجة{totalCount > PAGE_SIZE ? " — ضيّق البحث لرؤية الباقي" : ""}</>
+                  ) : (
+                    <>آخر {shownCount} صنف مستخدم من {totalCount} — ابحث للوصول لأي صنف آخر</>
+                  )}
                 </p>
               </div>
             </div>
@@ -1480,32 +2073,32 @@ export default function AdminProductsPage() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", background: "rgba(18,44,92,0.03)", borderRadius: 14, padding: "12px 14px" }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "#586377" }}>فلترة:</span>
 
-              <select value={categoryGroupFilter} onChange={(event) => { setCategoryGroupFilter(event.target.value); setCategoryFilter(""); setPage(1); }} className="gx-in gx-filter">
+              <select value={categoryGroupFilter} onChange={(event) => { setCategoryGroupFilter(event.target.value); setCategoryFilter(""); }} className="gx-in gx-filter">
                 <option value="">كل المجموعات</option>
                 {categoryGroups.map((item) => (<option key={item} value={item}>{item}</option>))}
               </select>
 
-              <select value={categoryFilter} onChange={(event) => { setCategoryFilter(event.target.value); setPage(1); }} className="gx-in gx-filter">
+              <select value={categoryFilter} onChange={(event) => { setCategoryFilter(event.target.value); }} className="gx-in gx-filter">
                 <option value="">كل التصنيفات</option>
                 {visibleCategories.map((item) => (<option key={item} value={item}>{item}</option>))}
               </select>
 
-              <select value={applicationFilter} onChange={(event) => { setApplicationFilter(event.target.value); setPage(1); }} className="gx-in gx-filter">
+              <select value={applicationFilter} onChange={(event) => { setApplicationFilter(event.target.value); }} className="gx-in gx-filter">
                 <option value="">كل التطبيقات</option>
                 {applications.map((item) => (<option key={item} value={item}>{item}</option>))}
               </select>
 
-              <select value={manufacturerFilter} onChange={(event) => { setManufacturerFilter(event.target.value); setPage(1); }} className="gx-in gx-filter">
+              <select value={manufacturerFilter} onChange={(event) => { setManufacturerFilter(event.target.value); }} className="gx-in gx-filter">
                 <option value="">كل الشركات الصانعة</option>
                 {manufacturers.map((item) => (<option key={item} value={item}>{item}</option>))}
               </select>
 
-              <select value={brandFilter} onChange={(event) => { setBrandFilter(event.target.value); setPage(1); }} className="gx-in gx-filter">
+              <select value={brandFilter} onChange={(event) => { setBrandFilter(event.target.value); }} className="gx-in gx-filter">
                 <option value="">يحل محل — كل الماركات</option>
                 {brands.map((item) => (<option key={item} value={item}>{item}</option>))}
               </select>
 
-              <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} className="gx-in gx-filter">
+              <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); }} className="gx-in gx-filter">
                 <option value="">كل الحالات</option>
                 <option value="active">فعّال فقط</option>
                 <option value="inactive">موقوف فقط</option>
@@ -1539,8 +2132,32 @@ export default function AdminProductsPage() {
           {importSummary && (
             <div style={{ marginTop: 20, borderRadius: 16, border: "1px solid #dfe6f2", background: "rgba(22,64,127,0.05)", padding: 20 }}>
               <p style={{ fontWeight: 700, color: "#16407F", margin: 0 }}>
-                نتيجة الاستيراد: {importSummary.success} من {importSummary.total} تم بنجاح
-                {" — "}أصناف جديدة: {importSummary.created || 0} · أصناف محدَّثة: {importSummary.updated || 0}
+                {lastImportKind === "specs" ? (
+                  <>
+                    نتيجة استيراد المواصفات: {importSummary.success} من {importSummary.total} صف
+                    {" — "}مواصفات جديدة: {importSummary.created || 0} · موجودة مسبقاً: {importSummary.updated || 0}
+                  </>
+                ) : lastImportKind === "notes" ? (
+                  <>
+                    نتيجة استيراد الملاحظات: {importSummary.success} من {importSummary.total} صف
+                    {" — "}ملاحظات جديدة: {importSummary.created || 0} · موجودة مسبقاً: {importSummary.updated || 0}
+                  </>
+                ) : lastImportKind === "references" ? (
+                  <>
+                    نتيجة استيراد الأرقام المرجعية: {importSummary.success} من {importSummary.total} صف
+                    {" — "}أرقام جديدة: {importSummary.created || 0} · موجودة مسبقاً: {importSummary.updated || 0}
+                  </>
+                ) : lastImportKind === "applications" ? (
+                  <>
+                    نتيجة استيراد الموديلات: {importSummary.success} من {importSummary.total} صف
+                    {" — "}موديلات جديدة: {importSummary.created || 0} · موجودة مسبقاً: {importSummary.updated || 0}
+                  </>
+                ) : (
+                  <>
+                    نتيجة الاستيراد: {importSummary.success} من {importSummary.total} تم بنجاح
+                    {" — "}أصناف جديدة: {importSummary.created || 0} · أصناف محدَّثة: {importSummary.updated || 0}
+                  </>
+                )}
               </p>
               {importSummary.failed.length > 0 && (
                 <div style={{ marginTop: 12, maxHeight: 260, overflowY: "auto" }}>
@@ -1655,9 +2272,14 @@ export default function AdminProductsPage() {
                           </span>
                         </td>
                         <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
-                          <button type="button" disabled={isPrintingJob || !product.is_active} onClick={() => openPrintModal(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 10, padding: "8px 8px", fontSize: 12, fontWeight: 700, color: "#fff", border: "none", background: (isPrintingJob || !product.is_active) ? "#C6CAD3" : "#1F8A5B", cursor: (isPrintingJob || !product.is_active) ? "not-allowed" : "pointer" }}>
-                            إنشاء وطباعة
-                          </button>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <button type="button" disabled={isPrintingJob || !product.is_active} onClick={() => openPrintModal(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 10, padding: "8px 8px", fontSize: 12, fontWeight: 700, color: "#fff", border: "none", background: (isPrintingJob || !product.is_active) ? "#C6CAD3" : "#1F8A5B", cursor: (isPrintingJob || !product.is_active) ? "not-allowed" : "pointer" }}>
+                              إنشاء وطباعة
+                            </button>
+                            <button type="button" onClick={() => openViewProduct(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 10, padding: "8px 8px", fontSize: 12, fontWeight: 700, color: "#16407F", border: "1px solid rgba(22,64,127,0.25)", background: "rgba(22,64,127,0.08)", cursor: "pointer", fontFamily: "inherit" }}>
+                              عرض
+                            </button>
+                          </div>
                         </td>
                         <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1682,44 +2304,6 @@ export default function AdminProductsPage() {
               </table>
             </div>
 
-            {/* ============== أزرار الصفحات ============== */}
-            {totalPages > 1 && (
-              <div style={{ marginTop: 22, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} style={{ borderRadius: 10, border: "1px solid rgba(18,44,92,0.15)", background: page === 1 ? "rgba(18,44,92,0.04)" : "#FFFFFF", color: page === 1 ? "#9AA3B5" : "#16407F", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, padding: "9px 16px", cursor: page === 1 ? "not-allowed" : "pointer" }}>
-                  السابق
-                </button>
-
-                {buildPageList().map((item, index) =>
-                  item === "gap" ? (
-                    <span key={`gap-${index}`} style={{ color: "#9AA3B5", padding: "0 4px" }}>…</span>
-                  ) : (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setPage(item)}
-                      style={{
-                        minWidth: 40,
-                        borderRadius: 10,
-                        border: item === page ? "none" : "1px solid rgba(18,44,92,0.15)",
-                        background: item === page ? "#16407F" : "#FFFFFF",
-                        color: item === page ? "#FFFDF8" : "#16407F",
-                        fontFamily: "inherit",
-                        fontWeight: 700,
-                        fontSize: 13.5,
-                        padding: "9px 12px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {item}
-                    </button>
-                  )
-                )}
-
-                <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ borderRadius: 10, border: "1px solid rgba(18,44,92,0.15)", background: page === totalPages ? "rgba(18,44,92,0.04)" : "#FFFFFF", color: page === totalPages ? "#9AA3B5" : "#16407F", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, padding: "9px 16px", cursor: page === totalPages ? "not-allowed" : "pointer" }}>
-                  التالي
-                </button>
-              </div>
-            )}
             </>
           )}
         </section>
@@ -1754,6 +2338,242 @@ export default function AdminProductsPage() {
               </button>
               <button type="button" onClick={() => setPrintJob(null)} disabled={isPrintingJob} style={{ borderRadius: 12, background: "#E4E1DA", padding: "14px 26px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: isPrintingJob ? "not-allowed" : "pointer" }}>
                 إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============== نافذة عرض المنتج (قراءة فقط) ============== */}
+      {viewProduct && (
+        <div onClick={() => setViewProduct(null)} style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", backgroundColor: "rgba(14,44,92,0.55)", padding: "40px 16px", overflowY: "auto" }}>
+          <div onClick={(event) => event.stopPropagation()} style={{ width: "min(900px, 100%)", borderRadius: 24, background: "#FFFDF8", padding: 26, boxShadow: "0 30px 70px -30px rgba(0,0,0,0.5)", position: "relative" }}>
+
+            <button type="button" onClick={() => setViewProduct(null)} aria-label="إغلاق" style={{ position: "absolute", top: 16, left: 16, width: 36, height: 36, borderRadius: "50%", border: "none", background: "rgba(18,44,92,0.08)", color: "#0E2C5C", fontSize: 20, fontWeight: 700, lineHeight: 1, cursor: "pointer", fontFamily: "inherit" }}>×</button>
+
+            {/* رأس النافذة: الصورة + الاسم + الحالة */}
+            <div className="gx-imgrow" style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+              <div style={{ height: 120, width: 120, flexShrink: 0, overflow: "hidden", borderRadius: 16, border: "1px solid rgba(18,44,92,0.15)", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {viewProduct.product_image_url ? (
+                  <img src={viewProduct.product_image_url} alt={viewProduct.product_number} style={{ height: "100%", width: "100%", objectFit: "contain", cursor: "zoom-in" }} onClick={() => setZoomedImage(viewProduct.product_image_url)} />
+                ) : (
+                  <span style={{ fontSize: 28 }}>🖼️</span>
+                )}
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+                  <span dir="ltr" style={{ fontSize: 22, fontWeight: 800, color: "#16407F" }}>{viewProduct.product_number}</span>
+                  {isNewProduct(viewProduct.created_at) && (
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, fontSize: 11, fontWeight: 700, color: "#fff", background: "#C4952E", borderRadius: 99 }}>N</span>
+                  )}
+                  <span style={{ borderRadius: 100, border: "1px solid", padding: "3px 12px", fontSize: 12, fontWeight: 700, background: viewProduct.is_active ? "rgba(31,138,91,0.1)" : "rgba(192,57,43,0.08)", color: viewProduct.is_active ? "#1F8A5B" : "#C0392B", borderColor: viewProduct.is_active ? "rgba(31,138,91,0.3)" : "rgba(192,57,43,0.25)" }}>
+                    {viewProduct.is_active ? "فعال" : "موقوف"}
+                  </span>
+                </div>
+                <p dir="ltr" style={{ margin: 0, fontSize: 15, color: "#586377", textAlign: "left" }}>{viewProduct.product_name_en || "-"}</p>
+                <p style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700, color: "#0E2C5C" }}>{viewProduct.product_name_ar || "-"}</p>
+              </div>
+            </div>
+
+            {/* البيانات الأساسية */}
+            <div className="gx-viewgrid" style={{ marginTop: 22, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+              <ViewField label="رقم المرجع" value={viewProduct.reference_number} ltr />
+              <ViewField label="الباركود الثابت" value={viewProduct.ean13_barcode} ltr />
+              <ViewField label="الباركود الداخلي" value={viewProduct.barcode} ltr />
+              <ViewField label="كمية التعبئة" value={String(viewProduct.packing_qty ?? "")} ltr />
+              <ViewField label="النقاط" value={String(viewProduct.points ?? "")} ltr />
+              <ViewField label="الشركة الصانعة" value={viewProduct.manufacturer} ltr />
+              <ViewField label="التطبيق" value={viewProduct.application} ltr />
+              <ViewField label="مجموعة التصنيف" value={viewProduct.category_group} ltr />
+              <ViewField label="التصنيف" value={viewProduct.category} ltr />
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <ViewField label="مسار التصنيف الكامل" value={viewProduct.category_breadcrumb} ltr />
+            </div>
+
+            {viewProduct.product_details && (
+              <div style={{ marginTop: 12 }}>
+                <ViewField label="تفاصيل المنتج" value={viewProduct.product_details} ltr />
+              </div>
+            )}
+
+            {/* يحل محل ماركات */}
+            <div style={{ marginTop: 18 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#33405A", marginBottom: 8 }}>يحل محل ماركات</label>
+              {splitReferences(viewProduct.replaces_brands).length === 0 ? (
+                <span style={{ fontSize: 13, color: "#9AA3B5" }}>غير محدّد</span>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {splitReferences(viewProduct.replaces_brands).map((brand, index) => (
+                    <span key={`${brand}-${index}`} dir="ltr" style={{ fontSize: 12.5, fontWeight: 700, color: "#0E2C5C", background: "rgba(196,149,46,0.14)", border: "1px solid rgba(196,149,46,0.3)", borderRadius: 99, padding: "4px 12px" }}>{brand}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* المواصفات الفنية — مثل جدول Product details في المصدر */}
+            {viewSpecs.length > 0 && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: "#33405A" }}>المواصفات الفنية</label>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#1F8A5B", background: "rgba(31,138,91,0.1)", borderRadius: 99, padding: "3px 12px" }}>
+                    {viewSpecs.length}
+                  </span>
+                </div>
+
+                <div style={{ maxHeight: 300, overflowY: "auto", borderRadius: 12, border: "1px solid rgba(18,44,92,0.12)" }}>
+                  <table dir="ltr" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", tableLayout: "fixed" }}>
+                    <thead>
+                      <tr style={{ background: "#FFFFFF" }}>
+                        <th style={{ width: "52%", padding: "10px 12px", fontSize: 12.5, fontWeight: 700, color: "#0E2C5C", borderBottom: "1px solid rgba(18,44,92,0.15)" }}>Properties</th>
+                        <th style={{ padding: "10px 12px", fontSize: 12.5, fontWeight: 700, color: "#0E2C5C", borderBottom: "1px solid rgba(18,44,92,0.15)" }}>Data</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewSpecs.map((item, index) => (
+                        <tr key={`${item.property}-${item.value}-${index}`} style={{ background: index % 2 === 0 ? "#F0EEE9" : "#FFFFFF" }}>
+                          <td style={{ padding: "9px 12px", fontSize: 12.5, color: "#33405A", wordBreak: "break-word" }}>{item.property}</td>
+                          <td style={{ padding: "9px 12px", fontSize: 12.5, color: "#16407F", fontWeight: 600, wordBreak: "break-word" }}>{item.value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* الأرقام المرجعية مربوطة بماركاتها — مثل جدول Comparison numbers */}
+            <div style={{ marginTop: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: "#33405A" }}>الأرقام المرجعية</label>
+                {!isLoadingViewReferences && viewReferences.length > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#8F6819", background: "rgba(196,149,46,0.16)", borderRadius: 99, padding: "3px 12px" }}>
+                    {viewReferences.length} رقم
+                  </span>
+                )}
+              </div>
+
+              {isLoadingViewReferences ? (
+                <p style={{ fontSize: 13, color: "#7A8498", margin: 0 }}>جاري تحميل الأرقام...</p>
+              ) : viewReferences.length > 0 ? (
+                <div style={{ maxHeight: 280, overflowY: "auto", borderRadius: 12, border: "1px solid rgba(18,44,92,0.12)" }}>
+                  <table dir="ltr" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", tableLayout: "fixed" }}>
+                    <thead>
+                      <tr style={{ background: "#FFFFFF" }}>
+                        <th style={{ width: "38%", padding: "10px 12px", fontSize: 12.5, fontWeight: 700, color: "#0E2C5C", borderBottom: "1px solid rgba(18,44,92,0.15)" }}>Replaces</th>
+                        <th style={{ padding: "10px 12px", fontSize: 12.5, fontWeight: 700, color: "#0E2C5C", borderBottom: "1px solid rgba(18,44,92,0.15)" }}>Reference number</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewReferences.map((item, index) => (
+                        <tr key={`${item.brand}-${item.reference}-${index}`} style={{ background: index % 2 === 0 ? "#F0EEE9" : "#FFFFFF" }}>
+                          <td style={{ padding: "9px 12px", fontSize: 12.5, color: "#33405A", wordBreak: "break-word" }}>{item.brand}</td>
+                          <td style={{ padding: "9px 12px", fontSize: 12.5, color: "#16407F", fontWeight: 600, wordBreak: "break-word" }}>{item.reference}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : splitReferences(viewProduct.all_references).length > 0 ? (
+                /* لا توجد أرقام مربوطة بماركات — نعرض القائمة العامة بدلاً منها */
+                <div style={{ maxHeight: 150, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: 6, borderRadius: 12, border: "1px solid rgba(18,44,92,0.1)", background: "#F5F2EC", padding: 12 }}>
+                  {splitReferences(viewProduct.all_references).map((reference, index) => (
+                    <span key={`${reference}-${index}`} dir="ltr" style={{ fontSize: 12.5, color: "#0E2C5C", background: "#fff", border: "1px solid rgba(18,44,92,0.12)", borderRadius: 8, padding: "4px 10px" }}>{reference}</span>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: 13, color: "#9AA3B5", margin: 0 }}>لا توجد أرقام مرجعية</p>
+              )}
+            </div>
+
+            {/* ملاحظات المورّد — أوصاف لا تدخل البحث */}
+            {viewNotes.length > 0 && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: "#33405A" }}>ملاحظات</label>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#586377", background: "rgba(18,44,92,0.06)", borderRadius: 99, padding: "3px 12px" }}>
+                    {viewNotes.length}
+                  </span>
+                </div>
+
+                <div style={{ borderRadius: 12, border: "1px solid rgba(18,44,92,0.1)", background: "#F5F2EC", padding: 12 }}>
+                  {viewNotes.map((item, index) => (
+                    <div key={`${item.note}-${index}`} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: index === viewNotes.length - 1 ? 0 : 8, flexWrap: "wrap" }}>
+                      {item.type && (
+                        <span
+                          title={item.type === "DT Reference" ? "مرجع داخلي — لا يُعرض للعميل" : undefined}
+                          style={{
+                            flexShrink: 0,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            borderRadius: 99,
+                            padding: "2px 9px",
+                            color: item.type === "DT Reference" ? "#C0392B" : "#7A409E",
+                            background: item.type === "DT Reference" ? "rgba(192,57,43,0.1)" : "rgba(122,64,158,0.12)",
+                            border: item.type === "DT Reference" ? "1px solid rgba(192,57,43,0.25)" : "1px solid rgba(122,64,158,0.25)",
+                          }}
+                        >
+                          {item.type === "DT Reference" ? "داخلي" : item.type}
+                        </span>
+                      )}
+                      <span dir="ltr" style={{ fontSize: 13, color: "#0E2C5C", wordBreak: "break-word" }}>{item.note}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* موديلات الشاحنات */}
+            <div style={{ marginTop: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: "#33405A" }}>موديلات الشاحنات</label>
+                {!isLoadingViewApplications && viewApplications.length > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#16407F", background: "rgba(22,64,127,0.1)", borderRadius: 99, padding: "3px 12px" }}>
+                    {viewApplications.length} موديل
+                  </span>
+                )}
+              </div>
+
+              {isLoadingViewApplications ? (
+                <p style={{ fontSize: 13, color: "#7A8498", margin: 0 }}>جاري تحميل الموديلات...</p>
+              ) : viewApplications.length === 0 ? (
+                <p style={{ fontSize: 13, color: "#9AA3B5", margin: 0 }}>لا توجد موديلات مسجّلة لهذا الصنف</p>
+              ) : (
+                <div style={{ maxHeight: 280, overflowY: "auto", borderRadius: 12, border: "1px solid rgba(18,44,92,0.12)" }}>
+                  <table dir="ltr" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", tableLayout: "fixed" }}>
+                    <thead>
+                      <tr style={{ background: "#FFFFFF" }}>
+                        <th style={{ width: "34%", padding: "10px 12px", fontSize: 12.5, fontWeight: 700, color: "#0E2C5C", borderBottom: "1px solid rgba(18,44,92,0.15)" }}>Vehicle make</th>
+                        <th style={{ padding: "10px 12px", fontSize: 12.5, fontWeight: 700, color: "#0E2C5C", borderBottom: "1px solid rgba(18,44,92,0.15)" }}>Model, engine, gearbox, axle, cabin</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(
+                        viewApplications.reduce((acc: Record<string, string[]>, item) => {
+                          (acc[item.brand] = acc[item.brand] || []).push(item.model);
+                          return acc;
+                        }, {})
+                      ).map(([brand, models], rowIndex) => (
+                        <tr key={brand} style={{ background: rowIndex % 2 === 0 ? "#F0EEE9" : "#FFFFFF" }}>
+                          <td style={{ padding: "10px 12px", fontSize: 12.5, color: "#33405A", verticalAlign: "top", wordBreak: "break-word" }}>{brand}</td>
+                          <td style={{ padding: "10px 12px", fontSize: 12.5, color: "#16407F", lineHeight: 1.7, verticalAlign: "top", wordBreak: "break-word" }}>{models.join(", ")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* أزرار الإجراءات */}
+            <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <button type="button" onClick={() => { const p = viewProduct; setViewProduct(null); handleEditProduct(p); }} style={{ flex: 1, minWidth: 140, borderRadius: 12, background: "#C4952E", padding: "13px", fontFamily: "inherit", fontWeight: 700, color: "#0E2C5C", border: "none", cursor: "pointer" }}>
+                تعديل هذا المنتج
+              </button>
+              <button type="button" onClick={() => setViewProduct(null)} style={{ borderRadius: 12, background: "#E4E1DA", padding: "13px 30px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: "pointer" }}>
+                إغلاق
               </button>
             </div>
           </div>
@@ -1838,10 +2658,12 @@ export default function AdminProductsPage() {
         @media (max-width:980px){
           .gx-kpis { grid-template-columns:1fr 1fr !important; }
           .gx-form-grid { grid-template-columns:1fr 1fr !important; }
+          .gx-viewgrid { grid-template-columns:1fr 1fr !important; }
           .gx-titlerow { flex-direction:column; }
         }
         @media (max-width:640px){
           .gx-form-grid { grid-template-columns:1fr !important; }
+          .gx-viewgrid { grid-template-columns:1fr !important; }
           .gx-imgrow { flex-direction:column !important; align-items:flex-start !important; }
         }
       `}</style>
@@ -1912,6 +2734,18 @@ function SelectOrNewField({
           <option value="__new__">＋ إدخال قيمة جديدة</option>
         </select>
       )}
+    </div>
+  );
+}
+
+// حقل عرض للقراءة فقط داخل نافذة عرض المنتج
+function ViewField({ label, value, ltr = false }: { label: string; value: string | null | undefined; ltr?: boolean }) {
+  return (
+    <div>
+      <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "#7A8498", marginBottom: 5 }}>{label}</label>
+      <div dir={ltr ? "ltr" : "rtl"} style={{ fontSize: 14, fontWeight: 600, color: value ? "#0E2C5C" : "#9AA3B5", background: "#F5F2EC", border: "1px solid rgba(18,44,92,0.08)", borderRadius: 10, padding: "9px 12px", wordBreak: "break-word", minHeight: 38 }}>
+        {value || "-"}
+      </div>
     </div>
   );
 }
