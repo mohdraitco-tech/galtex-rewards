@@ -11,7 +11,6 @@ import {
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import * as XLSX from "xlsx";
-import { getAdminToken } from "@/lib/admin-session";
 
 type Product = {
   id: string;
@@ -185,15 +184,6 @@ function parsePackingQty(value: any) {
   const parsed = match ? Number(match[0]) : 0;
 
   return parsed > 0 ? parsed : 1;
-}
-
-/* يستخرج اسم الملف من رابط التخزين العام:
-   https://xxx.supabase.co/storage/v1/object/product-images/200432-123.webp
-   => 200432-123.webp */
-function storageFileNameFromUrl(url: string | null | undefined) {
-  if (!url) return "";
-  const parts = String(url).split("/product-images/");
-  return parts.length > 1 ? parts[1].split("?")[0] : "";
 }
 
 // يقرأ قيمة العمود من صف الإكسل بأي اسم من الأسماء المحتملة (عربي أو إنجليزي)
@@ -571,17 +561,13 @@ export default function AdminProductsPage() {
     setKeepOldImageUrl(null);
   }
 
-  /* ضغط/تصغير الصورة بالمتصفح قبل الرفع.
-
-     الصيغة: WebP أولاً — جودة مماثلة لـ JPEG بحجم أقل 30% تقريباً،
-     وهذا فارق كبير مع آلاف الأصناف. المتصفحات القديمة التي لا تدعم
-     ترميز WebP ترجع تلقائياً إلى JPEG.
-
-     صور المنتجات فوتوغرافية على خلفية بيضاء، فلا تحتاج شفافية —
-     ولهذا نرسم خلفية بيضاء قبل الصورة. */
+  /* ضغط/تصغير الصورة بالمتصفح قبل الرفع — يحوّل صور الكاميرا الكبيرة (عدة
+     ميجابايت) لملف أصغر بكثير بدون فرق واضح بجودة العرض، فيصير الرفع أسرع
+     بكثير. صور المنتج دائمًا تتحول لـ JPEG (حتى لو رُفعت أصلاً كـ PNG) —
+     صور المنتجات فوتوغرافية ما تحتاج شفافية، وPNG لمحتوى فوتوغرافي يبقى
+     ضخم حتى بعد تصغير الأبعاد لأنه صيغة غير مضغوطة، وهذا كان سبب البطء. */
   async function compressImageForUpload(source: File): Promise<{ blob: Blob; ext: string }> {
     const MAX_DIMENSION = 1400;
-    const fallbackExt = source.name.split(".").pop()?.toLowerCase() || "jpg";
 
     try {
       const bitmap = await createImageBitmap(source);
@@ -593,37 +579,24 @@ export default function AdminProductsPage() {
       canvas.width = targetW;
       canvas.height = targetH;
       const ctx = canvas.getContext("2d");
-      if (!ctx) return { blob: source, ext: fallbackExt };
+      if (!ctx) return { blob: source, ext: source.name.split(".").pop()?.toLowerCase() || "jpg" };
 
+      // خلفية بيضاء أول (JPEG ما يدعم شفافية)، بعدها نرسم الصورة فوقها
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, targetW, targetH);
       ctx.drawImage(bitmap, 0, 0, targetW, targetH);
       bitmap.close?.();
 
-      const toBlob = (type: string, quality: number) =>
-        new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
 
-      // WebP أولاً
-      const webp = await toBlob("image/webp", 0.85);
-
-      // بعض المتصفحات تتجاهل النوع المطلوب وترجع PNG — نتحقق من النوع فعلياً
-      if (webp && webp.type === "image/webp") {
-        if (webp.size < source.size) return { blob: webp, ext: "webp" };
-        // الأصل أصغر (صورة مضغوطة مسبقاً) — نرفعه كما هو
-        return { blob: source, ext: fallbackExt };
+      if (blob && blob.size < source.size) {
+        return { blob, ext: "jpg" };
       }
 
-      // المتصفح لا يدعم ترميز WebP => JPEG
-      const jpeg = await toBlob("image/jpeg", 0.85);
-
-      if (jpeg && jpeg.size < source.size) {
-        return { blob: jpeg, ext: "jpg" };
-      }
-
-      return { blob: source, ext: fallbackExt };
+      return { blob: source, ext: source.name.split(".").pop()?.toLowerCase() || "jpg" };
     } catch {
-      // أي ملف أو متصفح لا يدعم الضغط يرفع الأصل بدل أن يفشل كليًا
-      return { blob: source, ext: fallbackExt };
+      // أي متصفح/ملف ما يدعم الضغط يرفع الأصل بدل ما يفشل كليًا
+      return { blob: source, ext: source.name.split(".").pop()?.toLowerCase() || "jpg" };
     }
   }
 
@@ -1188,7 +1161,7 @@ export default function AdminProductsPage() {
 
     /* نجلب رقم الصنف وحالة الصورة فقط — لا كل بيانات المنتج.
        هذا يجعل التحضير سريعاً حتى مع عشرات آلاف الأصناف. */
-    const { data: statusData, error: statusError } = await supabase.rpc("get_products_image_urls");
+    const { data: statusData, error: statusError } = await supabase.rpc("get_products_image_status");
 
     if (statusError) {
       setMessage(statusError.message || "تعذر جلب حالة صور الأصناف");
@@ -1201,14 +1174,10 @@ export default function AdminProductsPage() {
 
     /* الدالة ترجع كائناً واحداً { "رقم الصنف": هل يملك صورة } — لا جدول صفوف،
        لأن Supabase يحدّ الجداول بألف صف فتضيع باقي الأصناف. */
-    // { "رقم الصنف": "رابط الصورة أو نص فارغ" }
-    const imageUrlByNumber = new Map<string, string>();
-    Object.entries((statusData || {}) as Record<string, string>).forEach(([number, url]) => {
-      imageUrlByNumber.set(String(number).trim(), String(url || ""));
-    });
-
     const imageStatusByNumber = new Map<string, boolean>();
-    imageUrlByNumber.forEach((url, number) => imageStatusByNumber.set(number, url !== ""));
+    Object.entries((statusData || {}) as Record<string, boolean>).forEach(([number, hasImage]) => {
+      imageStatusByNumber.set(String(number).trim(), Boolean(hasImage));
+    });
 
     if (imageStatusByNumber.size === 0) {
       setMessage("تعذر تحميل قائمة الأصناف — أعد المحاولة أو حدّث الصفحة");
@@ -1222,9 +1191,6 @@ export default function AdminProductsPage() {
     const summary: ImportSummary = { total: files.length, success: 0, failed: [] };
     let doneCount = 0;
 
-    // أسماء الصور القديمة — تُحذف دفعة واحدة في النهاية
-    const filesToDelete: string[] = [];
-
     async function processOne(file: File, index: number) {
       const productNumber = file.name.replace(/\.[^/.]+$/, "").trim();
 
@@ -1235,7 +1201,6 @@ export default function AdminProductsPage() {
         }
 
         const hasImageValue = imageStatusByNumber.get(productNumber);
-        const oldImageUrl = imageUrlByNumber.get(productNumber) || "";
 
         // الصنف غير موجود إطلاقاً بالنظام
         if (hasImageValue === undefined) {
@@ -1294,15 +1259,6 @@ export default function AdminProductsPage() {
           p_image_url: publicUrlData.publicUrl,
         });
 
-        /* الصورة القديمة تُجمع هنا وتُحذف دفعة واحدة بعد انتهاء الرفع.
-           الحذف الفوري بعد كل صورة كان يضيف 2-4 ثوانٍ لكل واحدة. */
-        if (mode === "replace") {
-          const oldFile = storageFileNameFromUrl(oldImageUrl);
-          if (oldFile && oldFile !== fileName) {
-            filesToDelete.push(oldFile);
-          }
-        }
-
         if (error || !data?.success) {
           summary.failed.push({
             row: index + 1,
@@ -1325,17 +1281,11 @@ export default function AdminProductsPage() {
       }
     }
 
-    /* 50 صورة بالتوازي. المتصفح يحدّ الاتصالات المتزامنة فعلياً،
-       فالرقم سقف لا ضمان — لكنه يستغل الحد الأقصى المتاح. */
-    const CONCURRENCY = 50;
+    // رفع 4 صور بالتوازي بدل وحدة وحدة — يسرّع الاستيراد الجماعي بشكل كبير
+    const CONCURRENCY = 4;
     for (let start = 0; start < files.length; start += CONCURRENCY) {
       const batch = files.slice(start, start + CONCURRENCY);
       await Promise.all(batch.map((file, offset) => processOne(file, start + offset)));
-    }
-
-    // حذف كل الصور القديمة بنداء واحد — أسرع بكثير من نداء لكل صورة
-    if (filesToDelete.length > 0) {
-      await deleteStorageFiles(filesToDelete);
     }
 
     setLastImageImportMode(mode);
@@ -1351,29 +1301,6 @@ export default function AdminProductsPage() {
        - موجود  → تحديث الاسم الإنجليزي والأرقام والتصنيف فقط
        - جديد   → إنشاء كامل
      والخانة الفاضية في الإكسل لا تمسّ البيانات الموجودة إطلاقاً. */
-  /* حذف ملفات من التخزين عبر API على الخادم.
-     الحذف لا يتم من المتصفح مباشرة: منح صلاحية الحذف لمفتاح anon
-     يعني أن أي زائر يستطيع حذف كل صور المنتجات. */
-  async function deleteStorageFiles(names: string[]) {
-    if (names.length === 0) return { deleted: 0, failed: 0 };
-
-    try {
-      const response = await fetch("/api/admin/storage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete", token: getAdminToken(), names }),
-      });
-
-      const result = await response.json();
-      return { deleted: Number(result?.deleted || 0), failed: Number(result?.failed || 0) };
-    } catch {
-      return { deleted: 0, failed: names.length };
-    }
-  }
-
-  /* تنظيف الصور المهجورة: ملفات في التخزين لا يشير إليها أي صنف.
-     تتراكم لأن كل استبدال يرفع ملفاً جديداً ولا يحذف القديم،
-     وكثرتها تُبطئ رفع الصور بشكل ملحوظ. */
   /* استيراد المواصفات الفنية (Product details).
      نحفظ ترتيب الظهور في المصدر عبر sort_order داخل كل صنف. */
   async function importProductSpecs(sheet: any) {
@@ -2269,14 +2196,14 @@ export default function AdminProductsPage() {
                     <th style={{ padding: "12px 8px", width: 70, fontWeight: 600 }}>الصورة</th>
                     <th style={{ padding: "12px 8px", width: 85, fontWeight: 600 }}>رقم الصنف</th>
                     <th style={{ padding: "12px 8px", width: 85, fontWeight: 600 }}>رقم المرجع</th>
-                    <th style={{ padding: "12px 8px", width: 215, fontWeight: 600, color: "#8F6819", background: "rgba(196,149,46,0.14)" }}>كل الأرقام المرجعية</th>
-                    <th style={{ padding: "12px 8px", width: 205, fontWeight: 600 }}>اسم المنتج</th>
+                    <th style={{ padding: "12px 8px", width: 185, fontWeight: 600, color: "#8F6819", background: "rgba(196,149,46,0.14)" }}>كل الأرقام المرجعية</th>
+                    <th style={{ padding: "12px 8px", width: 175, fontWeight: 600 }}>اسم المنتج</th>
                     <th style={{ padding: "12px 8px", width: 120, fontWeight: 600 }}>الباركود الثابت</th>
                     <th style={{ padding: "12px 8px", width: 55, fontWeight: 600, textAlign: "center" }}>التعبئة</th>
                     <th style={{ padding: "12px 8px", width: 55, fontWeight: 600, textAlign: "center" }}>النقاط</th>
                     <th style={{ padding: "12px 8px", width: 70, fontWeight: 600, textAlign: "center" }}>الحالة</th>
-                    <th style={{ padding: "12px 6px", width: 100, fontWeight: 600, textAlign: "center" }}>إنشاء وطباعة</th>
-                    <th style={{ padding: "12px 6px", width: 62, fontWeight: 600, textAlign: "center" }}>تحكم</th>
+                    <th style={{ padding: "12px 8px", width: 160, fontWeight: 600, textAlign: "center" }}>إنشاء وطباعة</th>
+                    <th style={{ padding: "12px 8px", width: 130, fontWeight: 600, textAlign: "center" }}>تحكم</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2345,27 +2272,27 @@ export default function AdminProductsPage() {
                           </span>
                         </td>
                         <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                            <button type="button" disabled={isPrintingJob || !product.is_active} onClick={() => openPrintModal(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 8, padding: "5px 4px", fontSize: 11.5, fontWeight: 700, color: "#fff", border: "none", background: (isPrintingJob || !product.is_active) ? "#C6CAD3" : "#1F8A5B", cursor: (isPrintingJob || !product.is_active) ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <button type="button" disabled={isPrintingJob || !product.is_active} onClick={() => openPrintModal(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 10, padding: "8px 8px", fontSize: 12, fontWeight: 700, color: "#fff", border: "none", background: (isPrintingJob || !product.is_active) ? "#C6CAD3" : "#1F8A5B", cursor: (isPrintingJob || !product.is_active) ? "not-allowed" : "pointer" }}>
                               إنشاء وطباعة
                             </button>
-                            <button type="button" onClick={() => openViewProduct(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 8, padding: "5px 4px", fontSize: 11.5, fontWeight: 700, color: "#16407F", border: "1px solid rgba(22,64,127,0.25)", background: "rgba(22,64,127,0.08)", cursor: "pointer", fontFamily: "inherit" }}>
+                            <button type="button" onClick={() => openViewProduct(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 10, padding: "8px 8px", fontSize: 12, fontWeight: 700, color: "#16407F", border: "1px solid rgba(22,64,127,0.25)", background: "rgba(22,64,127,0.08)", cursor: "pointer", fontFamily: "inherit" }}>
                               عرض
                             </button>
                           </div>
                         </td>
-                        <td style={{ padding: 6, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
-                          <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
-                            <button type="button" onClick={() => handleEditProduct(product)} title="تعديل" style={{ width: 26, height: 26, borderRadius: 7, padding: 0, fontSize: 13, lineHeight: 1, color: "#8F6819", background: "rgba(196,149,46,0.16)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                              ✎
+                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <button type="button" onClick={() => handleEditProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#8F6819", background: "rgba(196,149,46,0.16)", border: "none", cursor: "pointer" }}>
+                              تعديل
                             </button>
                             {product.is_active ? (
-                              <button type="button" onClick={() => handleDeleteProduct(product)} title="حذف" style={{ width: 26, height: 26, borderRadius: 7, padding: 0, fontSize: 13, lineHeight: 1, color: "#C0392B", background: "rgba(192,57,43,0.1)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                                ✕
+                              <button type="button" onClick={() => handleDeleteProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#C0392B", background: "rgba(192,57,43,0.1)", border: "none", cursor: "pointer" }}>
+                                حذف
                               </button>
                             ) : (
-                              <button type="button" onClick={() => handleRestoreProduct(product)} title="تفعيل" style={{ width: 26, height: 26, borderRadius: 7, padding: 0, fontSize: 13, lineHeight: 1, color: "#1F8A5B", background: "rgba(31,138,91,0.12)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                                ✓
+                              <button type="button" onClick={() => handleRestoreProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#1F8A5B", background: "rgba(31,138,91,0.12)", border: "none", cursor: "pointer" }}>
+                                تفعيل
                               </button>
                             )}
                           </div>

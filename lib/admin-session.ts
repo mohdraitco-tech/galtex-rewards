@@ -54,7 +54,11 @@ export async function logoutAdmin() {
 
   if (token) {
     // نتجاهل الخطأ: المهم مسح التوكن محلياً في كل الأحوال
-    await supabase.rpc("logout_admin_session", { p_token: token }).catch(() => {});
+    try {
+      await supabase.rpc("logout_admin_session", { p_token: token });
+    } catch {
+      // لا شيء — الجلسة تُمسح محلياً على أي حال
+    }
   }
 
   clearAdminSession();
