@@ -3,11 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { saveAdminToken, clearAdminSession } from "@/lib/admin-session";
 
 /* ============================================================
    GALTEX Rewards — تسجيل دخول الإدارة (/admin/login)
-   الشكل: مطابق لتصميم المصمم (كرت مركزي على خلفية بيج بنجمتين)
-   المنطق: نُسخ حرفياً من الملف الأصلي (login_admin) — لم يتغيّر
+
+   الأمان: يستخدم login_admin_session الذي يُصدر توكن جلسة عشوائياً.
+   لا يُحفظ في المتصفح إلا التوكن — لا دور ولا صلاحيات، فتعديل
+   localStorage لا يمنح المهاجم شيئاً.
+
+   التصميم لم يتغيّر إطلاقاً عن النسخة السابقة.
    ============================================================ */
 
 const C = {
@@ -36,65 +41,44 @@ export default function AdminLoginPage() {
     setMessage("");
     setIsLoading(true);
 
+    // أي بقايا جلسة سابقة تُمسح قبل المحاولة
+    clearAdminSession();
+
     try {
-      const { data, error } = await supabase.rpc("login_admin", {
+      const { data, error } = await supabase.rpc("login_admin_session", {
         p_username: username.trim(),
         p_password: password,
       });
 
       if (error) {
-        console.error("LOGIN ADMIN ERROR:", error);
-
-        setMessage(
-          `خطأ: ${error.message}${
-            error.code ? ` — الكود: ${error.code}` : ""
-          }`
-        );
-
+        console.error("LOGIN ERROR:", error);
+        // لا نعرض تفاصيل الخطأ للمستخدم — قد تكشف بنية قاعدة البيانات
+        setMessage("تعذر الاتصال بالخادم، يرجى إعادة المحاولة");
         return;
       }
 
-      if (!data?.success) {
+      if (!data?.success || !data?.token) {
         setMessage(data?.message || "تعذر تسجيل الدخول");
         return;
       }
 
-      localStorage.setItem(
-        "galtex_admin_id",
-        String(data.admin_id ?? "")
-      );
+      // التوكن — نص عشوائي بلا معنى، والصلاحيات تُفحص في قاعدة البيانات
+      saveAdminToken(String(data.token));
 
-      localStorage.setItem(
-        "galtex_admin_username",
-        String(data.username ?? "")
-      );
-
-      localStorage.setItem(
-        "galtex_admin_name",
-        String(data.full_name ?? "")
-      );
-
-      localStorage.setItem(
-        "galtex_admin_role",
-        String(data.role ?? "")
-      );
-
-      // صلاحيات الموظف المرنة (كائن JSON) — تُستخدم لإخفاء/إظهار الأقسام
-      // بلوحة الإدارة. المدير العام ما يحتاجها لأن عنده كل الصلاحيات دائمًا.
-      localStorage.setItem(
-        "galtex_admin_permissions",
-        JSON.stringify(data.permissions || {})
-      );
+      /* انتقال تدريجي: نكتب المفاتيح القديمة أيضاً حتى تبقى الصفحات
+         التي لم تُحمَّ بعد تعمل. تُحذف هذه الأسطر بعد حماية كل الصفحات.
+         ملاحظة أمنية: هذه المفاتيح لا تُستخدم في أي فحص حقيقي —
+         الفحص الحقيقي يتم في قاعدة البيانات عبر التوكن. */
+      localStorage.setItem("galtex_admin_id", String(data.admin_id ?? ""));
+      localStorage.setItem("galtex_admin_username", String(data.username ?? ""));
+      localStorage.setItem("galtex_admin_name", String(data.full_name ?? ""));
+      localStorage.setItem("galtex_admin_role", String(data.role ?? ""));
+      localStorage.setItem("galtex_admin_permissions", JSON.stringify(data.permissions || {}));
 
       router.push("/admin");
     } catch (err) {
-      console.error("UNEXPECTED ADMIN LOGIN ERROR:", err);
-
-      setMessage(
-        err instanceof Error
-          ? `خطأ غير متوقع: ${err.message}`
-          : "حدث خطأ غير متوقع"
-      );
+      console.error("UNEXPECTED LOGIN ERROR:", err);
+      setMessage("حدث خطأ غير متوقع، يرجى إعادة المحاولة");
     } finally {
       setIsLoading(false);
     }
@@ -266,6 +250,7 @@ export default function AdminLoginPage() {
               onChange={(event) => setUsername(event.target.value)}
               placeholder="أدخل اسم المستخدم"
               autoFocus
+              autoComplete="username"
               style={{
                 width: "100%",
                 fontFamily: "inherit",
@@ -300,6 +285,7 @@ export default function AdminLoginPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="أدخل كلمة المرور"
+              autoComplete="current-password"
               style={{
                 width: "100%",
                 fontFamily: "inherit",
