@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import * as XLSX from "xlsx";
+import { getAdminToken } from "@/lib/admin-session";
 
 type Product = {
   id: string;
@@ -186,6 +187,15 @@ function parsePackingQty(value: any) {
   return parsed > 0 ? parsed : 1;
 }
 
+/* يستخرج اسم الملف من رابط التخزين العام:
+   https://xxx.supabase.co/storage/v1/object/product-images/200432-123.webp
+   => 200432-123.webp */
+function storageFileNameFromUrl(url: string | null | undefined) {
+  if (!url) return "";
+  const parts = String(url).split("/product-images/");
+  return parts.length > 1 ? parts[1].split("?")[0] : "";
+}
+
 // يقرأ قيمة العمود من صف الإكسل بأي اسم من الأسماء المحتملة (عربي أو إنجليزي)
 function pickColumn(row: any, ...keys: string[]) {
   for (const key of keys) {
@@ -250,7 +260,7 @@ export default function AdminProductsPage() {
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
   // نوع آخر استيراد: منتجات أو موديلات شاحنات (لعنوان صندوق النتيجة)
-  const [lastImportKind, setLastImportKind] = useState<"products" | "applications" | "references" | "notes" | "specs">("products");
+  const [lastImportKind, setLastImportKind] = useState<"products" | "applications" | "references" | "notes" | "specs" | "iis">("products");
 
   const [isImportingImages, setIsImportingImages] = useState(false);
   // أي زر يعمل حالياً (عشان نُظهر مؤشّر التقدّم على الزر الصحيح فقط)
@@ -290,6 +300,15 @@ export default function AdminProductsPage() {
   const [viewNotes, setViewNotes] = useState<{ note: string; type: string | null }[]>([]);
   // المواصفات الفنية (Product details)
   const [viewSpecs, setViewSpecs] = useState<{ property: string; value: string }[]>([]);
+  /* أرقام الأصناف المعروضة من جدول product_references — المصدر الدقيق.
+     العمود النصي all_references أقدم وأنقص، فكان العدد يختلف عن نافذة العرض. */
+  const [referencesMap, setReferencesMap] = useState<Record<string, string[]>>({});
+
+  // مصدر واحد لأرقام الصنف: الجدول أولاً، والنص القديم رجوعاً
+  function productReferences(product: Product) {
+    const mapped = referencesMap[product.product_number];
+    return mapped && mapped.length > 0 ? mapped : splitReferences(product.all_references);
+  }
 
 
   const hasActiveFilters = Boolean(
@@ -363,7 +382,18 @@ export default function AdminProductsPage() {
       return;
     }
 
-    setProducts((data?.rows || []) as Product[]);
+    const rows = (data?.rows || []) as Product[];
+    setProducts(rows);
+
+    // أرقام الخمسين المعروضة فقط — نداء واحد خفيف
+    const numbers = rows.map((row) => row.product_number).filter(Boolean);
+
+    if (numbers.length > 0) {
+      const { data: refsData } = await supabase.rpc("get_references_map", { p_numbers: numbers });
+      setReferencesMap((refsData || {}) as Record<string, string[]>);
+    } else {
+      setReferencesMap({});
+    }
     setTotalCount(Number(data?.total || 0));
     setIsLoading(false);
   }, [appliedSearch, categoryGroupFilter, categoryFilter, applicationFilter, manufacturerFilter, brandFilter, statusFilter]);
@@ -561,13 +591,17 @@ export default function AdminProductsPage() {
     setKeepOldImageUrl(null);
   }
 
-  /* ضغط/تصغير الصورة بالمتصفح قبل الرفع — يحوّل صور الكاميرا الكبيرة (عدة
-     ميجابايت) لملف أصغر بكثير بدون فرق واضح بجودة العرض، فيصير الرفع أسرع
-     بكثير. صور المنتج دائمًا تتحول لـ JPEG (حتى لو رُفعت أصلاً كـ PNG) —
-     صور المنتجات فوتوغرافية ما تحتاج شفافية، وPNG لمحتوى فوتوغرافي يبقى
-     ضخم حتى بعد تصغير الأبعاد لأنه صيغة غير مضغوطة، وهذا كان سبب البطء. */
+  /* ضغط/تصغير الصورة بالمتصفح قبل الرفع.
+
+     الصيغة: WebP أولاً — جودة مماثلة لـ JPEG بحجم أقل 30% تقريباً،
+     وهذا فارق كبير مع آلاف الأصناف. المتصفحات القديمة التي لا تدعم
+     ترميز WebP ترجع تلقائياً إلى JPEG.
+
+     صور المنتجات فوتوغرافية على خلفية بيضاء، فلا تحتاج شفافية —
+     ولهذا نرسم خلفية بيضاء قبل الصورة. */
   async function compressImageForUpload(source: File): Promise<{ blob: Blob; ext: string }> {
     const MAX_DIMENSION = 1400;
+    const fallbackExt = source.name.split(".").pop()?.toLowerCase() || "jpg";
 
     try {
       const bitmap = await createImageBitmap(source);
@@ -579,24 +613,37 @@ export default function AdminProductsPage() {
       canvas.width = targetW;
       canvas.height = targetH;
       const ctx = canvas.getContext("2d");
-      if (!ctx) return { blob: source, ext: source.name.split(".").pop()?.toLowerCase() || "jpg" };
+      if (!ctx) return { blob: source, ext: fallbackExt };
 
-      // خلفية بيضاء أول (JPEG ما يدعم شفافية)، بعدها نرسم الصورة فوقها
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, targetW, targetH);
       ctx.drawImage(bitmap, 0, 0, targetW, targetH);
       bitmap.close?.();
 
-      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+      const toBlob = (type: string, quality: number) =>
+        new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
 
-      if (blob && blob.size < source.size) {
-        return { blob, ext: "jpg" };
+      // WebP أولاً
+      const webp = await toBlob("image/webp", 0.85);
+
+      // بعض المتصفحات تتجاهل النوع المطلوب وترجع PNG — نتحقق من النوع فعلياً
+      if (webp && webp.type === "image/webp") {
+        if (webp.size < source.size) return { blob: webp, ext: "webp" };
+        // الأصل أصغر (صورة مضغوطة مسبقاً) — نرفعه كما هو
+        return { blob: source, ext: fallbackExt };
       }
 
-      return { blob: source, ext: source.name.split(".").pop()?.toLowerCase() || "jpg" };
+      // المتصفح لا يدعم ترميز WebP => JPEG
+      const jpeg = await toBlob("image/jpeg", 0.85);
+
+      if (jpeg && jpeg.size < source.size) {
+        return { blob: jpeg, ext: "jpg" };
+      }
+
+      return { blob: source, ext: fallbackExt };
     } catch {
-      // أي متصفح/ملف ما يدعم الضغط يرفع الأصل بدل ما يفشل كليًا
-      return { blob: source, ext: source.name.split(".").pop()?.toLowerCase() || "jpg" };
+      // أي ملف أو متصفح لا يدعم الضغط يرفع الأصل بدل أن يفشل كليًا
+      return { blob: source, ext: fallbackExt };
     }
   }
 
@@ -1161,7 +1208,7 @@ export default function AdminProductsPage() {
 
     /* نجلب رقم الصنف وحالة الصورة فقط — لا كل بيانات المنتج.
        هذا يجعل التحضير سريعاً حتى مع عشرات آلاف الأصناف. */
-    const { data: statusData, error: statusError } = await supabase.rpc("get_products_image_status");
+    const { data: statusData, error: statusError } = await supabase.rpc("get_products_image_urls");
 
     if (statusError) {
       setMessage(statusError.message || "تعذر جلب حالة صور الأصناف");
@@ -1174,10 +1221,14 @@ export default function AdminProductsPage() {
 
     /* الدالة ترجع كائناً واحداً { "رقم الصنف": هل يملك صورة } — لا جدول صفوف،
        لأن Supabase يحدّ الجداول بألف صف فتضيع باقي الأصناف. */
-    const imageStatusByNumber = new Map<string, boolean>();
-    Object.entries((statusData || {}) as Record<string, boolean>).forEach(([number, hasImage]) => {
-      imageStatusByNumber.set(String(number).trim(), Boolean(hasImage));
+    // { "رقم الصنف": "رابط الصورة أو نص فارغ" }
+    const imageUrlByNumber = new Map<string, string>();
+    Object.entries((statusData || {}) as Record<string, string>).forEach(([number, url]) => {
+      imageUrlByNumber.set(String(number).trim(), String(url || ""));
     });
+
+    const imageStatusByNumber = new Map<string, boolean>();
+    imageUrlByNumber.forEach((url, number) => imageStatusByNumber.set(number, url !== ""));
 
     if (imageStatusByNumber.size === 0) {
       setMessage("تعذر تحميل قائمة الأصناف — أعد المحاولة أو حدّث الصفحة");
@@ -1191,6 +1242,9 @@ export default function AdminProductsPage() {
     const summary: ImportSummary = { total: files.length, success: 0, failed: [] };
     let doneCount = 0;
 
+    // أسماء الصور القديمة — تُحذف دفعة واحدة في النهاية
+    const filesToDelete: string[] = [];
+
     async function processOne(file: File, index: number) {
       const productNumber = file.name.replace(/\.[^/.]+$/, "").trim();
 
@@ -1201,6 +1255,7 @@ export default function AdminProductsPage() {
         }
 
         const hasImageValue = imageStatusByNumber.get(productNumber);
+        const oldImageUrl = imageUrlByNumber.get(productNumber) || "";
 
         // الصنف غير موجود إطلاقاً بالنظام
         if (hasImageValue === undefined) {
@@ -1259,6 +1314,14 @@ export default function AdminProductsPage() {
           p_image_url: publicUrlData.publicUrl,
         });
 
+        /* الصورة القديمة تُجمع هنا وتُحذف دفعة واحدة بعد انتهاء الرفع.
+           الحذف الفوري بعد كل صورة كان يضيف 2-4 ثوانٍ لكل واحدة. */
+        // معطّل مؤقتاً لعزل سبب البطء
+        // if (mode === "replace") {
+        //   const oldFile = storageFileNameFromUrl(oldImageUrl);
+        //   if (oldFile && oldFile !== fileName) filesToDelete.push(oldFile);
+        // }
+
         if (error || !data?.success) {
           summary.failed.push({
             row: index + 1,
@@ -1281,12 +1344,17 @@ export default function AdminProductsPage() {
       }
     }
 
-    // رفع 4 صور بالتوازي بدل وحدة وحدة — يسرّع الاستيراد الجماعي بشكل كبير
-    const CONCURRENCY = 4;
+    /* 50 صورة بالتوازي. المتصفح يحدّ الاتصالات المتزامنة فعلياً،
+       فالرقم سقف لا ضمان — لكنه يستغل الحد الأقصى المتاح. */
+    const CONCURRENCY = 50;
     for (let start = 0; start < files.length; start += CONCURRENCY) {
       const batch = files.slice(start, start + CONCURRENCY);
       await Promise.all(batch.map((file, offset) => processOne(file, start + offset)));
     }
+
+    // حذف كل الصور القديمة بنداء واحد — أسرع بكثير من نداء لكل صورة
+    // معطّل مؤقتاً
+    // if (filesToDelete.length > 0) await deleteStorageFiles(filesToDelete);
 
     setLastImageImportMode(mode);
     setImageImportSummary(summary);
@@ -1301,6 +1369,29 @@ export default function AdminProductsPage() {
        - موجود  → تحديث الاسم الإنجليزي والأرقام والتصنيف فقط
        - جديد   → إنشاء كامل
      والخانة الفاضية في الإكسل لا تمسّ البيانات الموجودة إطلاقاً. */
+  /* حذف ملفات من التخزين عبر API على الخادم.
+     الحذف لا يتم من المتصفح مباشرة: منح صلاحية الحذف لمفتاح anon
+     يعني أن أي زائر يستطيع حذف كل صور المنتجات. */
+  async function deleteStorageFiles(names: string[]) {
+    if (names.length === 0) return { deleted: 0, failed: 0 };
+
+    try {
+      const response = await fetch("/api/admin/storage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", token: getAdminToken(), names }),
+      });
+
+      const result = await response.json();
+      return { deleted: Number(result?.deleted || 0), failed: Number(result?.failed || 0) };
+    } catch {
+      return { deleted: 0, failed: names.length };
+    }
+  }
+
+  /* تنظيف الصور المهجورة: ملفات في التخزين لا يشير إليها أي صنف.
+     تتراكم لأن كل استبدال يرفع ملفاً جديداً ولا يحذف القديم،
+     وكثرتها تُبطئ رفع الصور بشكل ملحوظ. */
   /* استيراد المواصفات الفنية (Product details).
      نحفظ ترتيب الظهور في المصدر عبر sort_order داخل كل صنف. */
   async function importProductSpecs(sheet: any) {
@@ -1322,6 +1413,49 @@ export default function AdminProductsPage() {
         };
       })
       .filter((row) => row.product_number && row.property && row.value);
+
+    setImportProgress({ done: 0, total: payload.length });
+
+    let inserted = 0;
+    let existing = 0;
+    const failed: { product_number: string; message: string }[] = [];
+
+    for (let start = 0; start < payload.length; start += SPECS_BATCH_SIZE) {
+      const chunk = payload.slice(start, start + SPECS_BATCH_SIZE);
+
+      const { data, error } = await supabase.rpc("import_product_specs_batch", { p_rows: chunk });
+
+      if (error) {
+        failed.push({
+          product_number: `الدفعة ${Math.floor(start / SPECS_BATCH_SIZE) + 1}`,
+          message: error.message || "فشلت الدفعة كاملة",
+        });
+      } else {
+        inserted += Number(data?.inserted || 0);
+        existing += Number(data?.existing || 0);
+      }
+
+      setImportProgress({ done: Math.min(start + chunk.length, payload.length), total: payload.length });
+    }
+
+    setImportSummary({ total: rows.length, success: inserted + existing, created: inserted, updated: existing, failed });
+  }
+
+  /* استيراد قيم IIS — مواصفة منتج مستقلة تصل في ملف خاص بها.
+     تُحفظ داخل جدول المواصفات نفسه باسم خاصية ثابت "IIS"،
+     فتظهر تلقائياً في جدول المواصفات الفنية بلا أي تغيير في قاعدة البيانات.
+     sort_order = 0 يضعها أول الجدول قبل بقية المواصفات. */
+  async function importProductIis(sheet: any) {
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    const payload = rows
+      .map((row) => ({
+        product_number: pickColumn(row, "GALTEX No.", "GALTEX No", "رقم الصنف"),
+        property: "IIS",
+        value: pickColumn(row, "IIS"),
+        sort_order: 0,
+      }))
+      .filter((row) => row.product_number && row.value);
 
     setImportProgress({ done: 0, total: payload.length });
 
@@ -1444,11 +1578,33 @@ export default function AdminProductsPage() {
   async function importVehicleApplications(sheet: any) {
     const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    /* اسم الموديل في المصدر يكرّر السنوات مرتين:
-         "FH (4) 2012- 2012 - 0"  =>  "FH (4) 2012-"
-         "B12B 2001-2011 2001 - 2011"  =>  "B12B 2001-2011"
-       نحذف اللاحقة المكررة فقط، وما عداها يبقى كما هو حرفياً. */
-    const cleanModelName = (value: string) => value.replace(/\s+\d{4}\s-\s\d{1,4}$/, "").trim();
+    /* لاحقة السنوات في المصدر تأتي بنمطين مختلفين حسب الكتالوج:
+
+       (أ) فولفو — الاسم يحمل سنواته أصلاً ثم تُلحق مكررة، فنحذف اللاحقة:
+           "FH (4) 2012- 2012 - 0"        =>  "FH (4) 2012-"
+           "B12B 2001-2011 2001 - 2011"   =>  "B12B 2001-2011"
+
+       (ب) أكتروس/مان — الاسم مجرّد رمز، واللاحقة هي مصدر السنوات الوحيد
+           فحذفها يمحو المعلومة كاملة، فنُبقيها بصيغة مرتّبة:
+           "930 2003 - 2008"  =>  "930 2003-2008"
+           "TGA 2000 - 0"     =>  "TGA 2000-"      (صفر = وما بعدها)
+
+       الفارق بينهما: هل سنة البداية مكرّرة داخل الاسم أم لا.
+       لا نكتفي بالسؤال «هل في الاسم رقم من أربع خانات؟» لأن موديلات مان
+       مثل "F 2000" و "L 2000" تحمل 2000 كاسم لا كسنة. */
+    const cleanModelName = (value: string) => {
+      const raw = String(value || "").trim();
+      const match = raw.match(/^(.*?)\s+(\d{4})\s-\s(\d{1,4})$/);
+      if (!match) return raw;
+
+      const base = match[1].trim();
+      const from = match[2];
+      const to = match[3];
+
+      if (base.includes(from)) return base;
+
+      return to === "0" ? `${base} ${from}-` : `${base} ${from}-${to}`;
+    };
 
     const payload = rows
       .map((row) => ({
@@ -1554,6 +1710,21 @@ export default function AdminProductsPage() {
       if (refsSheetName) {
         setLastImportKind("references");
         await importProductReferences(workbook.Sheets[refsSheetName]);
+        return;
+      }
+
+      /* ملف IIS: عمود اسمه IIS.
+         يُفحص قبل شيت Flat لأن شيت ملف IIS اسمه "Flat" أيضاً،
+         فلولا هذا الترتيب لذهب لمستورد الموديلات ورجع بصفر صف بلا سبب واضح. */
+      const iisSheetName = workbook.SheetNames.find((name) => {
+        const head: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, range: 0 });
+        const cells = (head[0] || []).map((c: any) => String(c).trim().toLowerCase());
+        return cells.includes("iis");
+      });
+
+      if (iisSheetName) {
+        setLastImportKind("iis");
+        await importProductIis(workbook.Sheets[iisSheetName]);
         return;
       }
 
@@ -2132,7 +2303,12 @@ export default function AdminProductsPage() {
           {importSummary && (
             <div style={{ marginTop: 20, borderRadius: 16, border: "1px solid #dfe6f2", background: "rgba(22,64,127,0.05)", padding: 20 }}>
               <p style={{ fontWeight: 700, color: "#16407F", margin: 0 }}>
-                {lastImportKind === "specs" ? (
+                {lastImportKind === "iis" ? (
+                  <>
+                    نتيجة استيراد قيم IIS: {importSummary.success} من {importSummary.total} صف
+                    {" — "}قيم جديدة: {importSummary.created || 0} · موجودة مسبقاً: {importSummary.updated || 0}
+                  </>
+                ) : lastImportKind === "specs" ? (
                   <>
                     نتيجة استيراد المواصفات: {importSummary.success} من {importSummary.total} صف
                     {" — "}مواصفات جديدة: {importSummary.created || 0} · موجودة مسبقاً: {importSummary.updated || 0}
@@ -2196,14 +2372,14 @@ export default function AdminProductsPage() {
                     <th style={{ padding: "12px 8px", width: 70, fontWeight: 600 }}>الصورة</th>
                     <th style={{ padding: "12px 8px", width: 85, fontWeight: 600 }}>رقم الصنف</th>
                     <th style={{ padding: "12px 8px", width: 85, fontWeight: 600 }}>رقم المرجع</th>
-                    <th style={{ padding: "12px 8px", width: 185, fontWeight: 600, color: "#8F6819", background: "rgba(196,149,46,0.14)" }}>كل الأرقام المرجعية</th>
-                    <th style={{ padding: "12px 8px", width: 175, fontWeight: 600 }}>اسم المنتج</th>
+                    <th style={{ padding: "12px 8px", width: 215, fontWeight: 600, color: "#8F6819", background: "rgba(196,149,46,0.14)" }}>كل الأرقام المرجعية</th>
+                    <th style={{ padding: "12px 8px", width: 205, fontWeight: 600 }}>اسم المنتج</th>
                     <th style={{ padding: "12px 8px", width: 120, fontWeight: 600 }}>الباركود الثابت</th>
                     <th style={{ padding: "12px 8px", width: 55, fontWeight: 600, textAlign: "center" }}>التعبئة</th>
                     <th style={{ padding: "12px 8px", width: 55, fontWeight: 600, textAlign: "center" }}>النقاط</th>
                     <th style={{ padding: "12px 8px", width: 70, fontWeight: 600, textAlign: "center" }}>الحالة</th>
-                    <th style={{ padding: "12px 8px", width: 160, fontWeight: 600, textAlign: "center" }}>إنشاء وطباعة</th>
-                    <th style={{ padding: "12px 8px", width: 130, fontWeight: 600, textAlign: "center" }}>تحكم</th>
+                    <th style={{ padding: "12px 6px", width: 100, fontWeight: 600, textAlign: "center" }}>إنشاء وطباعة</th>
+                    <th style={{ padding: "12px 6px", width: 62, fontWeight: 600, textAlign: "center" }}>تحكم</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2228,7 +2404,7 @@ export default function AdminProductsPage() {
                         <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", fontSize: 13, color: "#586377", wordBreak: "break-word" }} dir="ltr">{product.reference_number || "-"}</td>
                         <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)", background: "rgba(196,149,46,0.07)" }}>
                           {(() => {
-                            const rowReferences = splitReferences(product.all_references);
+                            const rowReferences = productReferences(product);
 
                             if (rowReferences.length === 0) {
                               return <span style={{ fontSize: 12.5, color: "#9AA3B5" }}>لا توجد أرقام</span>;
@@ -2272,27 +2448,27 @@ export default function AdminProductsPage() {
                           </span>
                         </td>
                         <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            <button type="button" disabled={isPrintingJob || !product.is_active} onClick={() => openPrintModal(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 10, padding: "8px 8px", fontSize: 12, fontWeight: 700, color: "#fff", border: "none", background: (isPrintingJob || !product.is_active) ? "#C6CAD3" : "#1F8A5B", cursor: (isPrintingJob || !product.is_active) ? "not-allowed" : "pointer" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                            <button type="button" disabled={isPrintingJob || !product.is_active} onClick={() => openPrintModal(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 8, padding: "5px 4px", fontSize: 11.5, fontWeight: 700, color: "#fff", border: "none", background: (isPrintingJob || !product.is_active) ? "#C6CAD3" : "#1F8A5B", cursor: (isPrintingJob || !product.is_active) ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
                               إنشاء وطباعة
                             </button>
-                            <button type="button" onClick={() => openViewProduct(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 10, padding: "8px 8px", fontSize: 12, fontWeight: 700, color: "#16407F", border: "1px solid rgba(22,64,127,0.25)", background: "rgba(22,64,127,0.08)", cursor: "pointer", fontFamily: "inherit" }}>
+                            <button type="button" onClick={() => openViewProduct(product)} style={{ width: "100%", whiteSpace: "nowrap", borderRadius: 8, padding: "5px 4px", fontSize: 11.5, fontWeight: 700, color: "#16407F", border: "1px solid rgba(22,64,127,0.25)", background: "rgba(22,64,127,0.08)", cursor: "pointer", fontFamily: "inherit" }}>
                               عرض
                             </button>
                           </div>
                         </td>
-                        <td style={{ padding: 8, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            <button type="button" onClick={() => handleEditProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#8F6819", background: "rgba(196,149,46,0.16)", border: "none", cursor: "pointer" }}>
-                              تعديل
+                        <td style={{ padding: 6, verticalAlign: "top", borderBottom: "1px solid rgba(18,44,92,0.07)" }}>
+                          <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                            <button type="button" onClick={() => handleEditProduct(product)} title="تعديل" style={{ width: 26, height: 26, borderRadius: 7, padding: 0, fontSize: 13, lineHeight: 1, color: "#8F6819", background: "rgba(196,149,46,0.16)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                              ✎
                             </button>
                             {product.is_active ? (
-                              <button type="button" onClick={() => handleDeleteProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#C0392B", background: "rgba(192,57,43,0.1)", border: "none", cursor: "pointer" }}>
-                                حذف
+                              <button type="button" onClick={() => handleDeleteProduct(product)} title="حذف" style={{ width: 26, height: 26, borderRadius: 7, padding: 0, fontSize: 13, lineHeight: 1, color: "#C0392B", background: "rgba(192,57,43,0.1)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                ✕
                               </button>
                             ) : (
-                              <button type="button" onClick={() => handleRestoreProduct(product)} style={{ borderRadius: 10, padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "#1F8A5B", background: "rgba(31,138,91,0.12)", border: "none", cursor: "pointer" }}>
-                                تفعيل
+                              <button type="button" onClick={() => handleRestoreProduct(product)} title="تفعيل" style={{ width: 26, height: 26, borderRadius: 7, padding: 0, fontSize: 13, lineHeight: 1, color: "#1F8A5B", background: "rgba(31,138,91,0.12)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                ✓
                               </button>
                             )}
                           </div>
@@ -2588,7 +2764,7 @@ export default function AdminProductsPage() {
             <p style={{ marginTop: 6, color: "#586377", fontSize: 14 }}>
               الصنف <span dir="ltr" style={{ fontWeight: 700, color: "#16407F" }}>{refsModalProduct.product_number}</span>
               {" — "}
-              {splitReferences(refsModalProduct.all_references).length} رقم
+              {productReferences(refsModalProduct).length} رقم
             </p>
 
             {refsModalProduct.category_breadcrumb && (
@@ -2598,7 +2774,7 @@ export default function AdminProductsPage() {
             )}
 
             <div style={{ marginTop: 18, display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {splitReferences(refsModalProduct.all_references).map((reference, index) => (
+              {productReferences(refsModalProduct).map((reference, index) => (
                 <span key={`${reference}-${index}`} dir="ltr" style={{ fontSize: 13, fontWeight: 700, color: "#0E2C5C", background: "rgba(196,149,46,0.14)", border: "1px solid rgba(196,149,46,0.3)", borderRadius: 10, padding: "6px 12px" }}>
                   {reference}
                 </span>
@@ -2606,7 +2782,7 @@ export default function AdminProductsPage() {
             </div>
 
             <div style={{ marginTop: 22, display: "flex", gap: 12 }}>
-              <button type="button" onClick={() => navigator.clipboard?.writeText(splitReferences(refsModalProduct.all_references).join(", "))} style={{ flex: 1, borderRadius: 12, background: "#16407F", padding: "12px", fontFamily: "inherit", fontWeight: 700, color: "#fff", border: "none", cursor: "pointer" }}>
+              <button type="button" onClick={() => navigator.clipboard?.writeText(productReferences(refsModalProduct).join(", "))} style={{ flex: 1, borderRadius: 12, background: "#16407F", padding: "12px", fontFamily: "inherit", fontWeight: 700, color: "#fff", border: "none", cursor: "pointer" }}>
                 نسخ كل الأرقام
               </button>
               <button type="button" onClick={() => setRefsModalProduct(null)} style={{ borderRadius: 12, background: "#E4E1DA", padding: "12px 26px", fontFamily: "inherit", fontWeight: 700, color: "#586377", border: "none", cursor: "pointer" }}>
